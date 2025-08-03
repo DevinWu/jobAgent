@@ -10,7 +10,7 @@
           <div class="create-domain-section">
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="Domain Title">
+                <el-form-item label="Domain Name">
                   <el-input
                     v-model="domainStore.title"
                     placeholder="Enter domain title (one word)"
@@ -19,7 +19,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="Domain Description">
+                <el-form-item label="Domain Knowledge">
                   <el-input
                     v-model="domainStore.description"
                     type="textarea"
@@ -54,7 +54,7 @@
                 :disabled="domainStore.loading"
               >
                 <el-icon><Upload /></el-icon>
-                Submit for Review
+                Create New Domain
               </el-button>
             </div>
 
@@ -207,7 +207,7 @@
           </el-table>
         </el-tab-pane>
 
-        <el-tab-pane label="Pending Review" name="pending">
+        <el-tab-pane label="Pending Review Domains" name="pending">
           <el-table :data="pendingDomains" :loading="loadingDomains" stripe>
             <el-table-column prop="title" label="Domain Title" width="200" />
             <el-table-column prop="description" label="Description" show-overflow-tooltip />

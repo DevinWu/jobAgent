@@ -18,8 +18,8 @@
       </el-menu-item>
       
       <el-menu-item index="/domain-management">
-        <el-icon><Plus /></el-icon>
-        <span>Domain Management</span>
+        <el-icon><Platform /></el-icon>
+        <span>Domains</span>
       </el-menu-item>
       
       <el-menu-item index="/mcp-tools">
@@ -29,7 +29,7 @@
       
       <el-menu-item v-if="authStore.isAdmin()" index="/admin">
         <el-icon><Setting /></el-icon>
-        <span>Admin</span>
+        <span>Admin Reviews</span>
       </el-menu-item>
 
       <el-sub-menu index="user">
@@ -57,7 +57,7 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { House, Plus, Tools, Setting, User, SwitchButton } from '@element-plus/icons-vue'
+import {House, Tools, Setting, User, SwitchButton, Platform} from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
