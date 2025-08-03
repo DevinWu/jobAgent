@@ -149,11 +149,13 @@ def update_user_role(db: Session, user_id: int, role_update: schemas.UserRoleUpd
 
 def create_admin_user(db: Session):
     existing_admin = db.query(models.User).filter(models.User.username == "admin").first()
-    if not existing_admin:
+    if existing_admin:
+        print("找到现有admin用户，密码哈希: {}".format(existing_admin.hashed_password))
+    else:
         hashed_password = get_password_hash("test1234")
         admin_user = models.User(
             username="admin",
-            email="admin@jobagent.com",
+            email="admin@paypal.com",
             hashed_password=hashed_password,
             role=models.UserRole.ADMIN
         )

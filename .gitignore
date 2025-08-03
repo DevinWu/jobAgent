@@ -1,2 +1,7 @@
 .idea
 jobAgent.iml
+jobagent-backend/app/__pycache__/
+jobagent-backend/app/routers/__pycache__/
+jobagent-backend/tests/__pycache__/
+jobagent-backend/tests/jobagent.db
+jobagent-backend/jobagent.db
