@@ -1,9 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth, domains, mcp_tools, job_analysis
+from .routers import auth, domains, mcp_tools, job_analysis, admin
 
 Base.metadata.create_all(bind=engine)
+
+from .database import SessionLocal
+from .crud import create_admin_user
+db = SessionLocal()
+create_admin_user(db)
+db.close()
 
 app = FastAPI(title="Job Agent API", description="Job failure analysis platform", version="1.0.0")
 
@@ -20,6 +26,7 @@ app.include_router(auth.router)
 app.include_router(domains.router)
 app.include_router(mcp_tools.router)
 app.include_router(job_analysis.router)
+app.include_router(admin.router)
 
 @app.get("/healthz")
 async def healthz():

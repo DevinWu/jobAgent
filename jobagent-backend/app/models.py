@@ -6,6 +6,7 @@ import enum
 
 class UserRole(enum.Enum):
     USER = "user"
+    VIP_USER = "vip_user"
     ADMIN = "admin"
 
 class JobFailureCategory(enum.Enum):
@@ -22,7 +23,9 @@ class MCPToolStatus(enum.Enum):
 
 class DomainStatus(enum.Enum):
     DRAFT = "draft"
+    WAITING_FOR_ADMIN_REVIEW = "waiting_for_admin_review"
     PUBLISHED = "published"
+    REJECTED = "rejected"
 
 class User(Base):
     __tablename__ = "users"
@@ -46,6 +49,7 @@ class Domain(Base):
     description = Column(Text, nullable=False)
     flow_config = Column(JSON, nullable=False)
     status = Column(Enum(DomainStatus), default=DomainStatus.DRAFT)
+    admin_comments = Column(Text)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

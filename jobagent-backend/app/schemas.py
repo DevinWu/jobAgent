@@ -35,6 +35,7 @@ class DomainUpdate(BaseModel):
 class DomainResponse(DomainBase):
     id: int
     status: DomainStatus
+    admin_comments: Optional[str]
     creator_id: int
     created_at: datetime
     updated_at: Optional[datetime]
@@ -71,6 +72,13 @@ class MCPToolResponse(MCPToolBase):
 class MCPToolAdminUpdate(BaseModel):
     status: MCPToolStatus
     admin_comments: Optional[str] = None
+
+class DomainAdminUpdate(BaseModel):
+    status: DomainStatus
+    admin_comments: Optional[str] = None
+
+class UserRoleUpdate(BaseModel):
+    role: UserRole
 
 class JobAnalysisCreate(BaseModel):
     job_id: str

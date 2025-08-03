@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'https://app-foejcikc.fly.dev'
+const API_BASE_URL = 'http://localhost:8000'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -30,8 +30,10 @@ export const authAPI = {
 export const domainsAPI = {
   getDomains: (publishedOnly = true) => api.get(`/domains/?published_only=${publishedOnly}`),
   getDomain: (id: number) => api.get(`/domains/${id}`),
+  getMyDomains: () => api.get('/domains/my'),
   createDomain: (domainData: any) => api.post('/domains/', domainData),
   updateDomain: (id: number, domainData: any) => api.put(`/domains/${id}`, domainData),
+  adminUpdateDomain: (id: number, adminData: any) => api.put(`/domains/${id}/admin`, adminData),
 }
 
 export const mcpToolsAPI = {
@@ -50,6 +52,12 @@ export const jobAnalysisAPI = {
     api.post('/job-analysis/', { job_id: jobId, domain_id: domainId }),
   getAnalysis: (jobId: string, domainId: number) =>
     api.get(`/job-analysis/${jobId}/${domainId}`),
+}
+
+export const adminAPI = {
+  getUsers: () => api.get('/admin/users'),
+  updateUserRole: (userId: number, roleData: any) => api.put(`/admin/users/${userId}/role`, roleData),
+  getDomainsForReview: () => api.get('/admin/domains'),
 }
 
 export default api
