@@ -49,7 +49,7 @@ class Domain(Base):
     description = Column(Text, nullable=False)
     flow_config = Column(JSON, nullable=False)
     status = Column(Enum(DomainStatus), default=DomainStatus.DRAFT)
-    admin_comments = Column(Text)
+    admin_comments = Column(Text, default="")
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

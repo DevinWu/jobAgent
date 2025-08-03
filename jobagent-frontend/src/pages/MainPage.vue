@@ -25,7 +25,7 @@
             </el-select>
             <div v-if="domains.length === 0" class="text-sm text-gray-500 mt-1">
               No published domains available.
-              <router-link to="/create-domain" class="text-blue-600 hover:underline ml-1">
+              <router-link to="/domain-management" class="text-blue-600 hover:underline ml-1">
                 Create one?
               </router-link>
             </div>
