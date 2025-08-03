@@ -77,7 +77,7 @@
                     </div>
                     
                     <div class="create-tool-item">
-                      <el-button type="dashed" size="small" @click="navigateToMCPTools">
+                      <el-button type="primary" size="small" @click="navigateToMCPTools">
                         <el-icon><Plus /></el-icon>
                         Create New Tool
                       </el-button>
@@ -100,6 +100,8 @@
                       @drop="handleDrop"
                       @dragover="handleDragOver"
                       class="vue-flow"
+                      :width="800"
+                      :height="520"
                     >
                       <Background />
                       <Controls />

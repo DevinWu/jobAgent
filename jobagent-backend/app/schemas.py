@@ -42,6 +42,7 @@ class DomainResponse(DomainBase):
 
     class Config:
         from_attributes = True
+        use_enum_values = True
 
 class MCPToolBase(BaseModel):
     title: str
