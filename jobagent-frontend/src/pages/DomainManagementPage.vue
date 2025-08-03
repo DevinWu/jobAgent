@@ -9,22 +9,22 @@
         <el-tab-pane label="Create New Domain" name="create">
           <div class="create-domain-section">
             <el-row :gutter="20">
-              <el-col :span="12">
+              <el-col :span="6">
                 <el-form-item label="Domain Name">
                   <el-input
                     v-model="domainStore.title"
-                    placeholder="Enter domain title (one word)"
+                    placeholder="Enter domain name"
                     @input="handleTitleChange"
                   />
                 </el-form-item>
               </el-col>
-              <el-col :span="12">
+              <el-col :span="18">
                 <el-form-item label="Domain Knowledge">
                   <el-input
                     v-model="domainStore.description"
                     type="textarea"
-                    :rows="3"
-                    placeholder="Describe how to diagnose failures in this domain"
+                    :rows="15"
+                    placeholder="Describe how to diagnose failure jobs in this domain"
                   />
                 </el-form-item>
               </el-col>
