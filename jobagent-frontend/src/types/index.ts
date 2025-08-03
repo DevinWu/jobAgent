@@ -2,7 +2,7 @@ export interface User {
   id: number
   username: string
   email: string
-  role: 'user' | 'admin'
+  role: 'user' | 'vip_user' | 'admin'
   created_at: string
 }
 
@@ -11,7 +11,8 @@ export interface Domain {
   title: string
   description: string
   flow_config: any
-  status: 'draft' | 'published'
+  status: 'draft' | 'waiting_for_admin_review' | 'published' | 'rejected'
+  admin_comments?: string
   creator_id: number
   created_at: string
   updated_at: string

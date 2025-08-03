@@ -17,9 +17,9 @@
         <span>Dashboard</span>
       </el-menu-item>
       
-      <el-menu-item index="/create-domain">
+      <el-menu-item index="/domain-management">
         <el-icon><Plus /></el-icon>
-        <span>Create Domain</span>
+        <span>Domain Management</span>
       </el-menu-item>
       
       <el-menu-item index="/mcp-tools">
@@ -35,7 +35,7 @@
       <el-sub-menu index="user">
         <template #title>
           <el-icon><User /></el-icon>
-          <span>{{ authStore.user?.username }}</span>
+          <span>{{ authStore.user?.username }} ({{ getRoleDisplayName(authStore.user?.role) }})</span>
         </template>
         <el-menu-item index="logout" @click="handleLogout">
           <el-icon><SwitchButton /></el-icon>
@@ -69,6 +69,19 @@ const activeIndex = computed(() => route.path)
 const handleSelect = (key: string) => {
   if (key !== 'logout') {
     router.push(key)
+  }
+}
+
+const getRoleDisplayName = (role?: string) => {
+  switch (role) {
+    case 'admin':
+      return 'Admin'
+    case 'vip_user':
+      return 'VIP User'
+    case 'user':
+      return 'User'
+    default:
+      return 'User'
   }
 }
 

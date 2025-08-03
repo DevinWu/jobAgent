@@ -125,3 +125,40 @@ def create_job_analysis(db: Session, job_id: str, domain_id: int, failure_catego
     db.commit()
     db.refresh(db_analysis)
     return db_analysis
+
+def update_domain_admin(db: Session, domain_id: int, admin_update: schemas.DomainAdminUpdate):
+    db_domain = db.query(models.Domain).filter(models.Domain.id == domain_id).first()
+    if db_domain:
+        db_domain.status = admin_update.status
+        if admin_update.admin_comments:
+            db_domain.admin_comments = admin_update.admin_comments
+        db.commit()
+        db.refresh(db_domain)
+    return db_domain
+
+def get_all_users(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.User).offset(skip).limit(limit).all()
+
+def update_user_role(db: Session, user_id: int, role_update: schemas.UserRoleUpdate):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_user:
+        db_user.role = role_update.role
+        db.commit()
+        db.refresh(db_user)
+    return db_user
+
+def create_admin_user(db: Session):
+    existing_admin = db.query(models.User).filter(models.User.username == "admin").first()
+    if not existing_admin:
+        hashed_password = get_password_hash("test1234")
+        admin_user = models.User(
+            username="admin",
+            email="admin@jobagent.com",
+            hashed_password=hashed_password,
+            role=models.UserRole.ADMIN
+        )
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
+        return admin_user
+    return existing_admin

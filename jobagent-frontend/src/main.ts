@@ -10,7 +10,7 @@ import '@vue-flow/minimap/dist/style.css'
 import App from './App.vue'
 import MainPage from './pages/MainPage.vue'
 import LoginPage from './pages/LoginPage.vue'
-import CreateDomainPage from './pages/CreateDomainPage.vue'
+import DomainManagementPage from './pages/DomainManagementPage.vue'
 import MCPToolsPage from './pages/MCPToolsPage.vue'
 import AdminPage from './pages/AdminPage.vue'
 import { useAuthStore } from './stores/auth'
@@ -18,7 +18,7 @@ import { useAuthStore } from './stores/auth'
 const routes = [
   { path: '/', component: MainPage, meta: { requiresAuth: true } },
   { path: '/login', component: LoginPage },
-  { path: '/create-domain', component: CreateDomainPage, meta: { requiresAuth: true } },
+  { path: '/domain-management', component: DomainManagementPage, meta: { requiresAuth: true } },
   { path: '/mcp-tools', component: MCPToolsPage, meta: { requiresAuth: true } },
   { path: '/admin', component: AdminPage, meta: { requiresAuth: true, requiresAdmin: true } }
 ]

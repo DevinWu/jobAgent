@@ -4,7 +4,7 @@
       <h1 class="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
       
       <el-tabs v-model="activeTab" class="demo-tabs">
-        <el-tab-pane label="Pending Reviews" name="pending">
+        <el-tab-pane label="Pending Tool Reviews" name="pending-tools">
           <el-table :data="pendingTools" :loading="loading" stripe>
             <el-table-column prop="title" label="Tool Title" width="200" />
             <el-table-column prop="creator.username" label="Creator" width="150" />
@@ -24,7 +24,50 @@
           </el-table>
         </el-tab-pane>
 
-        <el-tab-pane label="All Tools" name="all">
+        <el-tab-pane label="Pending Domain Reviews" name="pending-domains">
+          <el-table :data="pendingDomains" :loading="loadingDomains" stripe>
+            <el-table-column prop="title" label="Domain Title" width="200" />
+            <el-table-column prop="creator.username" label="Creator" width="150" />
+            <el-table-column prop="description" label="Description" show-overflow-tooltip />
+            <el-table-column prop="created_at" label="Submitted" width="150">
+              <template #default="scope">
+                {{ formatDate(scope.row.created_at) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="Actions" width="200">
+              <template #default="scope">
+                <el-button size="small" type="primary" @click="approveDomain(scope.row)">Approve</el-button>
+                <el-button size="small" type="danger" @click="rejectDomain(scope.row)">Reject</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="User Management" name="users">
+          <el-table :data="users" :loading="loadingUsers" stripe>
+            <el-table-column prop="username" label="Username" width="200" />
+            <el-table-column prop="email" label="Email" width="250" />
+            <el-table-column prop="role" label="Role" width="150">
+              <template #default="scope">
+                <el-tag :type="getRoleType(scope.row.role)">
+                  {{ getRoleDisplayName(scope.row.role) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="Created" width="150">
+              <template #default="scope">
+                {{ formatDate(scope.row.created_at) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="Actions" width="200">
+              <template #default="scope">
+                <el-button size="small" type="primary" @click="changeUserRole(scope.row)">Change Role</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="All Tools" name="all-tools">
           <el-table :data="allTools" :loading="loading" stripe>
             <el-table-column prop="title" label="Tool Title" width="200" />
             <el-table-column prop="creator.username" label="Creator" width="150" />
@@ -43,6 +86,25 @@
             <el-table-column label="Actions" width="150">
               <template #default="scope">
                 <el-button size="small" type="success" @click="testTool(scope.row)">Test</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="All Domains" name="all-domains">
+          <el-table :data="allDomains" :loading="loadingDomains" stripe>
+            <el-table-column prop="title" label="Domain Title" width="200" />
+            <el-table-column prop="creator.username" label="Creator" width="150" />
+            <el-table-column prop="status" label="Status" width="150">
+              <template #default="scope">
+                <el-tag :type="getStatusType(scope.row.status)">
+                  {{ scope.row.status }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="Created" width="150">
+              <template #default="scope">
+                {{ formatDate(scope.row.created_at) }}
               </template>
             </el-table-column>
           </el-table>
@@ -101,32 +163,80 @@
         <el-button type="danger" :loading="rejecting" @click="confirmReject">Reject Tool</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showDomainRejectDialog" title="Reject Domain" width="500px">
+      <el-form label-width="120px">
+        <el-form-item label="Rejection Reason">
+          <el-input
+            v-model="domainRejectionReason"
+            type="textarea"
+            :rows="4"
+            placeholder="Enter reason for rejection"
+          />
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <el-button @click="showDomainRejectDialog = false">Cancel</el-button>
+        <el-button type="danger" :loading="rejecting" @click="confirmRejectDomain">Reject Domain</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="showRoleChangeDialog" title="Change User Role" width="400px">
+      <el-form label-width="120px">
+        <el-form-item label="New Role">
+          <el-select v-model="newUserRole" placeholder="Select role">
+            <el-option label="User" value="user" />
+            <el-option label="VIP User" value="vip_user" />
+            <el-option label="Admin" value="admin" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <el-button @click="showRoleChangeDialog = false">Cancel</el-button>
+        <el-button type="primary" :loading="rejecting" @click="confirmRoleChange">Update Role</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { mcpToolsAPI } from '@/utils/api'
-import type { MCPTool } from '@/types'
+import { mcpToolsAPI, adminAPI, domainsAPI } from '@/utils/api'
+import type { MCPTool, Domain, User } from '@/types'
 
-const activeTab = ref('pending')
+const activeTab = ref('pending-tools')
 const pendingTools = ref<MCPTool[]>([])
 const allTools = ref<MCPTool[]>([])
+const pendingDomains = ref<Domain[]>([])
+const allDomains = ref<Domain[]>([])
+const users = ref<User[]>([])
 const loading = ref(false)
+const loadingDomains = ref(false)
+const loadingUsers = ref(false)
 const testing = ref(false)
 const rejecting = ref(false)
 
 const showTestDialog = ref(false)
 const showRejectDialog = ref(false)
+const showDomainRejectDialog = ref(false)
+const showRoleChangeDialog = ref(false)
 const testingTool = ref<MCPTool | null>(null)
 const rejectingTool = ref<MCPTool | null>(null)
+const rejectingDomain = ref<Domain | null>(null)
+const changingRoleUser = ref<User | null>(null)
 const testParameters = ref('')
 const testResult = ref<any>(null)
 const rejectionReason = ref('')
+const domainRejectionReason = ref('')
+const newUserRole = ref('')
 
 onMounted(() => {
   loadTools()
+  loadDomains()
+  loadUsers()
 })
 
 const loadTools = async () => {
@@ -142,6 +252,33 @@ const loadTools = async () => {
     ElMessage.error('Failed to load tools')
   } finally {
     loading.value = false
+  }
+}
+
+const loadDomains = async () => {
+  loadingDomains.value = true
+  try {
+    const response = await adminAPI.getDomainsForReview()
+    allDomains.value = response.data
+    pendingDomains.value = response.data.filter((domain: Domain) => 
+      domain.status === 'waiting_for_admin_review'
+    )
+  } catch (err) {
+    ElMessage.error('Failed to load domains')
+  } finally {
+    loadingDomains.value = false
+  }
+}
+
+const loadUsers = async () => {
+  loadingUsers.value = true
+  try {
+    const response = await adminAPI.getUsers()
+    users.value = response.data
+  } catch (err) {
+    ElMessage.error('Failed to load users')
+  } finally {
+    loadingUsers.value = false
   }
 }
 
@@ -247,6 +384,115 @@ const getStatusType = (status: string) => {
       return 'info'
     default:
       return 'info'
+  }
+}
+
+const getRoleType = (role: string) => {
+  switch (role) {
+    case 'admin':
+      return 'danger'
+    case 'vip_user':
+      return 'warning'
+    case 'user':
+      return 'info'
+    default:
+      return 'info'
+  }
+}
+
+const getRoleDisplayName = (role: string) => {
+  switch (role) {
+    case 'admin':
+      return 'Admin'
+    case 'vip_user':
+      return 'VIP User'
+    case 'user':
+      return 'User'
+    default:
+      return role
+  }
+}
+
+const approveDomain = async (domain: Domain) => {
+  try {
+    await ElMessageBox.confirm(
+      `Are you sure you want to approve "${domain.title}"?`,
+      'Confirm Approval',
+      {
+        confirmButtonText: 'Approve',
+        cancelButtonText: 'Cancel',
+        type: 'warning',
+      }
+    )
+
+    await domainsAPI.adminUpdateDomain(domain.id, {
+      status: 'published',
+      admin_comments: 'Approved by admin'
+    })
+    
+    ElMessage.success('Domain approved successfully')
+    loadDomains()
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      ElMessage.error(err.response?.data?.detail || 'Failed to approve domain')
+    }
+  }
+}
+
+const rejectDomain = (domain: Domain) => {
+  rejectingDomain.value = domain
+  domainRejectionReason.value = ''
+  showDomainRejectDialog.value = true
+}
+
+const confirmRejectDomain = async () => {
+  if (!rejectingDomain.value || !domainRejectionReason.value.trim()) {
+    ElMessage.error('Please provide a rejection reason')
+    return
+  }
+
+  rejecting.value = true
+  try {
+    await domainsAPI.adminUpdateDomain(rejectingDomain.value.id, {
+      status: 'rejected',
+      admin_comments: domainRejectionReason.value
+    })
+    
+    ElMessage.success('Domain rejected successfully')
+    showDomainRejectDialog.value = false
+    loadDomains()
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || 'Failed to reject domain')
+  } finally {
+    rejecting.value = false
+  }
+}
+
+const changeUserRole = (user: User) => {
+  changingRoleUser.value = user
+  newUserRole.value = user.role
+  showRoleChangeDialog.value = true
+}
+
+const confirmRoleChange = async () => {
+  if (!changingRoleUser.value || !newUserRole.value) {
+    ElMessage.error('Please select a role')
+    return
+  }
+
+  rejecting.value = true
+  try {
+    await adminAPI.updateUserRole(changingRoleUser.value.id, {
+      role: newUserRole.value
+    })
+    
+    ElMessage.success('User role updated successfully')
+    showRoleChangeDialog.value = false
+    loadUsers()
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || 'Failed to update user role')
+  } finally {
+    rejecting.value = false
   }
 }
 
