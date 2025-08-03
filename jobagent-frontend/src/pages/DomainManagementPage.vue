@@ -77,7 +77,7 @@
                     </div>
                     
                     <div class="create-tool-item">
-                      <el-button type="dashed" size="small" @click="navigateToMCPTools">
+                      <el-button type="primary" size="small" @click="navigateToMCPTools">
                         <el-icon><Plus /></el-icon>
                         Create New Tool
                       </el-button>
@@ -497,6 +497,7 @@ const formatDate = (dateString: string) => {
 }
 
 .vue-flow-container {
+  width: 100%;
   height: 520px;
   border: 2px dashed #d9d9d9;
   border-radius: 6px;
