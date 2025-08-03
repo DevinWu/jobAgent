@@ -228,6 +228,15 @@ DEBUG=true
 
 ### Frontend Configuration
 
+The frontend uses environment variables for API configuration. Create a `.env.local` file in the `jobagent-frontend` directory for local overrides:
+
+```env
+# API Configuration
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+For production deployment, set the `VITE_API_BASE_URL` environment variable to your production API URL.
+
 The frontends are configured to connect to the backend at `http://localhost:8000` by default. Update the API base URL in the respective frontend configurations if needed.
 
 ## 📚 API Documentation
