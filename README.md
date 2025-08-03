@@ -56,16 +56,7 @@ jobAgent/
 │   │       ├── mcp_tools.py     # MCP tool endpoints
 │   │       └── job_analysis.py  # Job analysis endpoints
 │   └── tests/                   # Test files
-├── jobagent-frontend/           # React + TypeScript frontend
-│   ├── package.json             # npm dependencies and scripts
-│   ├── package-lock.json        # Locked npm dependencies
-│   ├── index.html               # HTML entry point
-│   ├── vite.config.ts           # Vite configuration
-│   ├── tsconfig.json            # TypeScript configuration
-│   ├── tailwind.config.js       # Tailwind CSS configuration
-│   ├── postcss.config.js        # PostCSS configuration
-│   └── src/                     # React source code
-└── jobagent-vue-frontend/       # Vue 3 + TypeScript frontend
+└── jobagent-frontend/       # Vue 3 + TypeScript frontend
     ├── package.json             # npm dependencies and scripts
     ├── package-lock.json        # Locked npm dependencies
     ├── index.html               # HTML entry point
@@ -83,14 +74,6 @@ jobAgent/
 - **Package Management**: Poetry
 - **Code Quality**: black (formatting), isort (import sorting), pytest (testing)
 - **Environment**: python-dotenv for configuration
-
-### React Frontend
-- **Framework**: React 19 with TypeScript
-- **Build Tool**: Vite 7
-- **Styling**: Tailwind CSS 4
-- **Routing**: React Router DOM 7
-- **HTTP Client**: Axios
-- **Icons**: Lucide React
 
 ### Vue Frontend
 - **Framework**: Vue 3 with TypeScript
@@ -146,41 +129,12 @@ jobAgent/
    The backend API will be available at: `http://localhost:8000`
    API documentation: `http://localhost:8000/docs`
 
-### React Frontend Setup
 
-1. **Navigate to React frontend directory**:
-   ```bash
-   cd jobagent-frontend
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. **Start the development server**:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-
-   The React frontend will be available at: `http://localhost:5173`
-
-4. **Build for production**:
-   ```bash
-   npm run build
-   # or
-   yarn build
-   ```
-
-### Vue Frontend Setup
+### Frontend Setup
 
 1. **Navigate to Vue frontend directory**:
    ```bash
-   cd jobagent-vue-frontend
+   cd jobagent-frontend
    ```
 
 2. **Install dependencies**:
@@ -216,13 +170,7 @@ jobAgent/
    poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
 
-2. **Start React frontend** (Terminal 2):
-   ```bash
-   cd jobagent-frontend
-   npm run dev
-   ```
-
-3. **Start Vue frontend** (Terminal 3, optional):
+2. **Start Vue frontend** (Terminal 3, optional):
    ```bash
    cd jobagent-vue-frontend
    npm run dev
@@ -231,7 +179,6 @@ jobAgent/
 ### Default Ports
 
 - **Backend API**: `http://localhost:8000`
-- **React Frontend**: `http://localhost:5173`
 - **Vue Frontend**: `http://localhost:5174`
 - **API Documentation**: `http://localhost:8000/docs`
 

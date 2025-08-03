@@ -41,9 +41,19 @@ export interface JobAnalysis {
   created_at: string
 }
 
-export interface AuthContextType {
-  user: User | null
-  login: (username: string, password: string) => Promise<boolean>
-  logout: () => void
-  isAuthenticated: boolean
+export interface FlowNode {
+  id: string
+  type: 'domain' | 'mcp_tool'
+  position: { x: number; y: number }
+  data: {
+    title: string
+    tool_id?: number
+    config?: any
+  }
+}
+
+export interface FlowEdge {
+  id: string
+  source: string
+  target: string
 }
