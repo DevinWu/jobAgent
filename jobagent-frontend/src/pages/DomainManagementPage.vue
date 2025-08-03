@@ -100,8 +100,6 @@
                       @drop="handleDrop"
                       @dragover="handleDragOver"
                       class="vue-flow"
-                      :width="800"
-                      :height="520"
                     >
                       <Background />
                       <Controls />
@@ -499,6 +497,7 @@ const formatDate = (dateString: string) => {
 }
 
 .vue-flow-container {
+  width: 100%;
   height: 520px;
   border: 2px dashed #d9d9d9;
   border-radius: 6px;
