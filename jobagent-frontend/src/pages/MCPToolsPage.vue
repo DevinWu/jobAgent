@@ -129,16 +129,93 @@
     <el-dialog v-model="showTestDialog" title="Test MCP Tool" width="600px">
       <div v-if="testingTool">
         <h3 class="mb-4">{{ testingTool.title }}</h3>
-        <el-form label-width="120px">
-          <el-form-item label="Test Parameters">
-            <el-input
-              v-model="testParameters"
-              type="textarea"
-              :rows="4"
-              placeholder="Enter test parameters as JSON"
-            />
-          </el-form-item>
-        </el-form>
+        
+        <!-- 动态参数表单 -->
+        <div v-if="testingTool.parameters && Object.keys(testingTool.parameters).length > 0">
+          <el-form label-width="120px">
+            <el-form-item 
+              v-for="(config, name) in testingTool.parameters" 
+              :key="name"
+              :label="name"
+              :required="config.required"
+            >
+              <!-- 字符串类型 -->
+              <el-input 
+                v-if="config.type === 'str'" 
+                v-model="testParamValues[name]" 
+                placeholder="Enter string value"
+              />
+              
+              <!-- 整数类型 -->
+              <el-input-number 
+                v-else-if="config.type === 'int'" 
+                v-model="testParamValues[name]" 
+                :controls="true"
+                :precision="0"
+                style="width: 100%"
+              />
+              
+              <!-- 浮点数类型 -->
+              <el-input-number 
+                v-else-if="config.type === 'float'" 
+                v-model="testParamValues[name]" 
+                :controls="true"
+                :precision="2"
+                style="width: 100%"
+              />
+              
+              <!-- 布尔类型 -->
+              <el-switch 
+                v-else-if="config.type === 'bool'" 
+                v-model="testParamValues[name]"
+              />
+              
+              <!-- 列表类型 -->
+              <el-input 
+                v-else-if="config.type === 'list'" 
+                v-model.lazy="testParamValues[name]" 
+                type="textarea"
+                :rows="2"
+                placeholder="Enter as JSON array: [1, 2, 3]"
+                @change="validateJsonInput(name, 'list')"
+              />
+              
+              <!-- 字典类型 -->
+              <el-input 
+                v-else-if="config.type === 'dict'" 
+                v-model.lazy="testParamValues[name]" 
+                type="textarea"
+                :rows="2"
+                placeholder="Enter as JSON object: {'key': 'value'}"
+                @change="validateJsonInput(name, 'dict')"
+              />
+              
+              <!-- 默认输入框 -->
+              <el-input 
+                v-else 
+                v-model="testParamValues[name]" 
+                placeholder="Enter value"
+              />
+              
+              <span class="param-type-hint">{{ config.type }}</span>
+            </el-form-item>
+          </el-form>
+          
+          <!-- JSON预览 -->
+          <el-collapse class="mt-4">
+            <el-collapse-item title="JSON Preview">
+              <pre class="json-preview">{{ JSON.stringify(testParamValues, null, 2) }}</pre>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+        
+        <!-- 无参数情况 -->
+        <el-alert
+          v-else
+          title="This tool has no parameters"
+          type="info"
+          :closable="false"
+        />
         
         <div v-if="testResult" class="mt-4">
           <h4 class="mb-2">Test Result:</h4>
@@ -181,6 +258,7 @@ const showTestDialog = ref(false)
 const testingTool = ref<MCPTool | null>(null)
 const testParameters = ref('')
 const testResult = ref<any>(null)
+const testParamValues = ref<Record<string, any>>({})
 
 const formRef = ref<FormInstance>()
 const toolForm = ref({
@@ -303,10 +381,68 @@ const editTool = (tool: MCPTool) => {
   ElMessage.info('Edit functionality coming soon')
 }
 
+// 解析工具参数定义，返回参数列表
+const parseToolParameters = (tool: MCPTool) => {
+  const result: Array<{name: string, type: string, required: boolean}> = []
+  
+  if (tool && tool.parameters) {
+    Object.entries(tool.parameters).forEach(([name, config]) => {
+      // 确保config是一个对象，并且有type和required属性
+      if (typeof config === 'object' && config !== null) {
+        const paramType = (config as any).type || 'str'
+        const required = !!(config as any).required
+        result.push({ name, type: paramType, required })
+      }
+    })
+  }
+  
+  return result
+}
+
+// 根据参数类型获取默认值
+const getDefaultValueForType = (type: string) => {
+  switch (type) {
+    case 'str':
+      return ''
+    case 'int':
+      return 0
+    case 'float':
+      return 0.0
+    case 'bool':
+      return false
+    case 'list':
+      return []
+    case 'dict':
+      return {}
+    default:
+      return ''
+  }
+}
+
+// 初始化测试参数值
+const initTestParamValues = (tool: MCPTool) => {
+  const params = parseToolParameters(tool)
+  const values: Record<string, any> = {}
+  
+  params.forEach(param => {
+    // 如果有示例输入，使用示例值
+    if (tool.sample_input && param.name in tool.sample_input) {
+      values[param.name] = tool.sample_input[param.name]
+    } else {
+      // 否则使用默认值
+      values[param.name] = getDefaultValueForType(param.type)
+    }
+  })
+  
+  return values
+}
+
 const testTool = (tool: MCPTool) => {
   testingTool.value = tool
   testParameters.value = JSON.stringify(tool.sample_input || {}, null, 2)
   testResult.value = null
+  // 初始化测试参数值
+  testParamValues.value = initTestParamValues(tool)
   showTestDialog.value = true
 }
 
@@ -338,15 +474,78 @@ const deleteTool = (tool: MCPTool) => {
     })
 }
 
+// 验证JSON输入
+const validateJsonInput = (paramName: string, type: 'list' | 'dict') => {
+  try {
+    const value = testParamValues.value[paramName]
+    
+    // 如果是空字符串，设置为空数组或空对象
+    if (value === '') {
+      testParamValues.value[paramName] = type === 'list' ? [] : {}
+      return
+    }
+    
+    // 如果是字符串，尝试解析
+    if (typeof value === 'string') {
+      const parsed = JSON.parse(value)
+      
+      // 验证类型
+      if (type === 'list' && !Array.isArray(parsed)) {
+        ElMessage.warning(`Parameter ${paramName} should be an array`)
+        return
+      }
+      
+      if (type === 'dict' && (Array.isArray(parsed) || typeof parsed !== 'object' || parsed === null)) {
+        ElMessage.warning(`Parameter ${paramName} should be an object`)
+        return
+      }
+      
+      // 更新值为解析后的对象
+      testParamValues.value[paramName] = parsed
+    }
+  } catch (err) {
+    ElMessage.error(`Invalid JSON for parameter ${paramName}`)
+  }
+}
+
+// 处理复杂类型的参数值
+const prepareParamValue = (value: any, type: string) => {
+  if (type === 'list' || type === 'dict') {
+    // 如果已经是对象或数组，直接返回
+    if (typeof value === 'object' && value !== null) {
+      return value
+    }
+    
+    // 如果是字符串，尝试解析
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value)
+      } catch (err) {
+        // 解析失败，返回空数组或空对象
+        return type === 'list' ? [] : {}
+      }
+    }
+    
+    // 默认返回空数组或空对象
+    return type === 'list' ? [] : {}
+  }
+  
+  return value
+}
+
 const runTest = async () => {
   if (!testingTool.value) return
 
-  let params
-  try {
-    params = JSON.parse(testParameters.value)
-  } catch (err) {
-    ElMessage.error('Invalid JSON in test parameters')
-    return
+  // 准备参数
+  const params: Record<string, any> = {}
+  
+  if (testingTool.value.parameters) {
+    Object.entries(testingTool.value.parameters).forEach(([name, config]) => {
+      if (name in testParamValues.value) {
+        // 处理复杂类型的参数值
+        params[name] = prepareParamValue(testParamValues.value[name], (config as any).type)
+      }
+    })
   }
 
   testing.value = true
@@ -429,5 +628,30 @@ const formatDate = (dateString: string) => {
 .el-textarea.is-readonly .el-textarea__inner {
   background-color: #f5f7fa;
   color: #606266;
+}
+
+/* 测试参数表单样式 */
+.param-type-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.json-preview {
+  background-color: #f5f7fa;
+  padding: 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  font-size: 12px;
+  color: #606266;
+}
+
+/* 测试结果样式 */
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  font-size: 12px;
 }
 </style>
