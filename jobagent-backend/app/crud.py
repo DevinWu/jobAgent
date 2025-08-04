@@ -147,6 +147,14 @@ def update_user_role(db: Session, user_id: int, role_update: schemas.UserRoleUpd
         db.refresh(db_user)
     return db_user
 
+def delete_mcp_tool(db: Session, tool_id: int):
+    db_tool = db.query(models.MCPTool).filter(models.MCPTool.id == tool_id).first()
+    if db_tool:
+        db.delete(db_tool)
+        db.commit()
+        return True
+    return False
+
 def create_admin_user(db: Session):
     existing_admin = db.query(models.User).filter(models.User.username == "admin").first()
     if not existing_admin:

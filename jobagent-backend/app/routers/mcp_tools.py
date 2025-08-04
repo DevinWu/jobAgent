@@ -62,6 +62,21 @@ def admin_update_mcp_tool(
         raise HTTPException(status_code=404, detail="MCP Tool not found")
     return update_mcp_tool_admin(db=db, tool_id=tool_id, admin_update=admin_update)
 
+@router.post("/add/execute", response_model=schemas.MCPToolExecuteResponse)
+async def execute_mcp_tool_add(parameters):
+    if "first" not in parameters or "second" not in parameters:
+        raise HTTPException(status_code=400, detail="Missing parameters")
+
+    if not isinstance(parameters["first"], int) or not isinstance(parameters["second"], int):
+        raise HTTPException(status_code=400, detail="Parameters must be integers")
+
+    return schemas.MCPToolExecuteResponse(
+        success=True,
+        response={
+            "result": parameters["first"] + parameters["second"]
+        }
+    )
+
 @router.post("/{tool_id}/execute", response_model=schemas.MCPToolExecuteResponse)
 async def execute_mcp_tool(
     tool_id: int,
@@ -90,3 +105,26 @@ async def execute_mcp_tool(
             success=False,
             error=str(e)
         )
+
+@router.delete("/{tool_id}", status_code=204)
+def delete_mcp_tool_endpoint(
+    tool_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    db_tool = get_mcp_tool(db, tool_id=tool_id)
+    if db_tool is None:
+        raise HTTPException(status_code=404, detail="MCP Tool not found")
+    
+    # 检查用户是否是工具的创建者或管理员
+    if db_tool.creator_id != current_user.id and current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    if db_tool.status == models.MCPToolStatus.PUBLISHED and current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(status_code=400, detail="Only admins can delete published tools")
+
+    from ..crud import delete_mcp_tool
+    if delete_mcp_tool(db=db, tool_id=tool_id):
+        return {"message": "Tool deleted successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to delete tool")

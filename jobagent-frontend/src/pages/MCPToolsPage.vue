@@ -29,6 +29,7 @@
             <el-table-column label="Actions" width="200">
               <template #default="scope">
                 <el-button size="small" @click="editTool(scope.row)">Edit</el-button>
+                <el-button size="small" @click="deleteTool(scope.row)">Delete</el-button>
                 <el-button size="small" type="success" @click="testTool(scope.row)">Test</el-button>
               </template>
             </el-table-column>
@@ -54,7 +55,12 @@
       </el-tabs>
     </div>
 
-    <el-dialog v-model="showCreateDialog" title="Create New MCP Tool" width="600px">
+    <el-dialog 
+      v-model="showCreateDialog" 
+      title="Create New MCP Tool" 
+      width="600px"
+      @open="handleCreateDialogOpen"
+    >
       <el-form ref="formRef" :model="toolForm" :rules="toolRules" label-width="120px">
         <el-form-item label="Title" prop="title">
           <el-input v-model="toolForm.title" placeholder="Enter tool title" />
@@ -64,12 +70,52 @@
           <el-input v-model="toolForm.api_url" placeholder="Enter API URL" />
         </el-form-item>
         
-        <el-form-item label="Parameters" prop="parameters">
+        <el-form-item label="Parameters">
+          <div class="parameters-container">
+            <div v-for="(param, index) in parametersList" :key="index" class="parameter-row">
+              <el-input 
+                v-model="param.name" 
+                placeholder="Parameter name" 
+                class="param-name"
+              />
+              <el-select 
+                v-model="param.type" 
+                placeholder="Type"
+                class="param-type"
+              >
+                <el-option 
+                  v-for="type in parameterTypes" 
+                  :key="type.value" 
+                  :label="type.label" 
+                  :value="type.value" 
+                />
+              </el-select>
+              <el-checkbox v-model="param.required" label="Required" class="param-required" />
+              <el-button 
+                type="danger" 
+                circle 
+                @click="removeParameter(index)" 
+                :icon="Delete"
+                class="param-delete"
+              />
+            </div>
+            
+            <div class="add-param-row">
+              <el-button type="primary" @click="addParameter" plain>
+                <el-icon class="mr-1"><Plus /></el-icon>
+                Add Parameter
+              </el-button>
+            </div>
+          </div>
+        </el-form-item>
+        
+        <el-form-item label="JSON Preview" v-if="parametersList.length > 0">
           <el-input
             v-model="parametersJson"
             type="textarea"
-            :rows="6"
-            placeholder="Enter parameters as JSON"
+            :rows="4"
+            readonly
+            placeholder="Parameters JSON preview"
           />
         </el-form-item>
       </el-form>
@@ -115,11 +161,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { ref, onMounted, computed } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { Plus, Delete } from '@element-plus/icons-vue'
 import { mcpToolsAPI } from '@/utils/api'
 import type { MCPTool } from '@/types'
+
+
 
 const activeTab = ref('my')
 const myTools = ref<MCPTool[]>([])
@@ -141,7 +189,55 @@ const toolForm = ref({
   parameters: {}
 })
 
-const parametersJson = ref('{}')
+// 参数列表，用于UI显示和交互
+const parametersList = ref<Array<{name: string, type: string, required: boolean}>>([])
+
+// 可选的参数类型
+const parameterTypes = [
+  { label: 'String (str)', value: 'str' },
+  { label: 'Integer (int)', value: 'int' },
+  { label: 'Float', value: 'float' },
+  { label: 'Boolean (bool)', value: 'bool' },
+  { label: 'List', value: 'list' },
+  { label: 'Dictionary (dict)', value: 'dict' }
+]
+
+// 添加新参数
+const addParameter = () => {
+  parametersList.value.push({ name: '', type: 'str', required: false })
+}
+
+// 删除参数
+const removeParameter = (index: number) => {
+  parametersList.value.splice(index, 1)
+}
+
+// 将参数列表转换为JSON对象
+const updateParametersJson = () => {
+  const params: Record<string, any> = {}
+  parametersList.value.forEach(param => {
+    if (param.name.trim()) {
+      params[param.name] = {
+        type: param.type,
+        required: param.required
+      }
+    }
+  })
+  return params
+}
+
+// 监听对话框打开，初始化参数列表
+const handleCreateDialogOpen = () => {
+  // 清空参数列表
+  parametersList.value = []
+  // 添加一个空参数作为起点
+  addParameter()
+}
+
+// 用于存储JSON字符串，但现在主要用于内部转换
+const parametersJson = computed(() => {
+  return JSON.stringify(updateParametersJson(), null, 2)
+})
 
 const toolRules: FormRules = {
   title: [
@@ -178,12 +274,15 @@ const createTool = async () => {
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
 
-  try {
-    toolForm.value.parameters = JSON.parse(parametersJson.value)
-  } catch (err) {
-    ElMessage.error('Invalid JSON in parameters')
+  // 检查参数名称是否为空
+  const emptyParams = parametersList.value.filter(param => !param.name.trim())
+  if (emptyParams.length > 0) {
+    ElMessage.warning('Parameter names cannot be empty')
     return
   }
+
+  // 使用更新后的参数
+  toolForm.value.parameters = updateParametersJson()
 
   creating.value = true
   try {
@@ -191,7 +290,7 @@ const createTool = async () => {
     ElMessage.success('Tool created successfully')
     showCreateDialog.value = false
     toolForm.value = { title: '', api_url: '', parameters: {} }
-    parametersJson.value = '{}'
+    parametersList.value = []
     loadTools()
   } catch (err: any) {
     ElMessage.error(err.response?.data?.detail || 'Failed to create tool')
@@ -209,6 +308,34 @@ const testTool = (tool: MCPTool) => {
   testParameters.value = JSON.stringify(tool.sample_input || {}, null, 2)
   testResult.value = null
   showTestDialog.value = true
+}
+
+const deleteTool = (tool: MCPTool) => {
+  ElMessageBox.confirm(
+    `Are you sure you want to delete the tool "${tool.title}"?`,
+    'Warning',
+    {
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+      type: 'warning',
+    }
+  )
+    .then(async () => {
+      loading.value = true
+      try {
+        await mcpToolsAPI.deleteTool(tool.id)
+        ElMessage.success('Tool deleted successfully')
+        // 重新加载工具列表
+        loadTools()
+      } catch (err: any) {
+        ElMessage.error(err.response?.data?.detail || 'Failed to delete tool')
+      } finally {
+        loading.value = false
+      }
+    })
+    .catch(() => {
+      // 用户取消删除操作
+    })
 }
 
 const runTest = async () => {
@@ -260,5 +387,47 @@ const formatDate = (dateString: string) => {
 <style scoped>
 .el-card {
   border-radius: 8px;
+}
+
+/* 参数表单样式 */
+.parameters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.parameter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.param-name {
+  flex: 2;
+  min-width: 150px;
+}
+
+.param-type {
+  flex: 1;
+  min-width: 120px;
+}
+
+.param-required {
+  flex: 0.8;
+  min-width: 100px;
+}
+
+.param-delete {
+  flex: 0 0 auto;
+}
+
+.add-param-row {
+  margin-top: 8px;
+}
+
+/* 预览JSON区域样式 */
+.el-textarea.is-readonly .el-textarea__inner {
+  background-color: #f5f7fa;
+  color: #606266;
 }
 </style>

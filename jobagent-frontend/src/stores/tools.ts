@@ -27,11 +27,30 @@ export const useToolsStore = defineStore('tools', () => {
     return availableTools.value.find(tool => tool.id === id)
   }
 
+  const deleteTool = async (id: number) => {
+    loading.value = true
+    error.value = ''
+    
+    try {
+      await mcpToolsAPI.deleteTool(id)
+      // 从可用工具列表中移除已删除的工具
+      availableTools.value = availableTools.value.filter(tool => tool.id !== id)
+      return true
+    } catch (err) {
+      error.value = 'Failed to delete tool'
+      console.error('Failed to delete tool:', err)
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     availableTools,
     loading,
     error,
     loadAvailableTools,
-    getToolById
+    getToolById,
+    deleteTool
   }
 })

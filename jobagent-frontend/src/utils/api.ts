@@ -45,6 +45,7 @@ export const mcpToolsAPI = {
   adminUpdateTool: (id: number, adminData: any) => api.put(`/mcp-tools/${id}/admin`, adminData),
   executeTool: (id: number, parameters: any) => 
     api.post(`/mcp-tools/${id}/execute`, { parameters }),
+  deleteTool: (id: number) => api.delete(`/mcp-tools/${id}`),
 }
 
 export const jobAnalysisAPI = {
