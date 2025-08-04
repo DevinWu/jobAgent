@@ -40,6 +40,13 @@
           <el-table :data="publishedTools" :loading="loading" stripe>
             <el-table-column prop="title" label="Title" width="200" />
             <el-table-column prop="api_url" label="API URL" show-overflow-tooltip />
+            <el-table-column prop="status" label="Status" width="150">
+              <template #default="scope">
+                <el-tag :type="getStatusType(scope.row.status)">
+                  {{ scope.row.status }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column prop="created_at" label="Published" width="150">
               <template #default="scope">
                 {{ formatDate(scope.row.created_at) }}
@@ -226,6 +233,17 @@
           >
             <pre class="mt-2">{{ testResult.data }}</pre>
           </el-alert>
+          
+          <!-- 测试成功且工具状态为draft时显示提交审核按钮 -->
+          <div v-if="testResult.success && testingTool && testingTool.status === 'draft'" class="mt-4">
+            <el-button 
+              type="primary" 
+              :loading="submittingForReview" 
+              @click="submitForReview"
+            >
+              Submit for Admin Review
+            </el-button>
+          </div>
         </div>
       </div>
       
@@ -252,6 +270,7 @@ const publishedTools = ref<MCPTool[]>([])
 const loading = ref(false)
 const creating = ref(false)
 const testing = ref(false)
+const submittingForReview = ref(false)
 
 const showCreateDialog = ref(false)
 const showTestDialog = ref(false)
@@ -580,6 +599,36 @@ const getStatusType = (status: string) => {
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString()
+}
+
+// 提交工具进行管理员审核
+const submitForReview = async () => {
+  if (!testingTool.value) return
+  
+  submittingForReview.value = true
+  try {
+    // 更新工具状态为等待管理员审核
+    await mcpToolsAPI.updateTool(testingTool.value.id, {
+      status: 'waiting_for_admin_review'
+    })
+    
+    // 更新本地工具状态
+    if (testingTool.value) {
+      testingTool.value.status = 'waiting_for_admin_review'
+      
+      // 更新工具列表中的状态
+      const toolIndex = myTools.value.findIndex(tool => tool.id === testingTool.value?.id)
+      if (toolIndex !== -1) {
+        myTools.value[toolIndex].status = 'waiting_for_admin_review'
+      }
+    }
+    
+    ElMessage.success('Tool submitted for admin review successfully')
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || 'Failed to submit tool for review')
+  } finally {
+    submittingForReview.value = false
+  }
 }
 </script>
 

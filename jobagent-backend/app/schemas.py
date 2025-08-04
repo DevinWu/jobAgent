@@ -57,6 +57,7 @@ class MCPToolUpdate(BaseModel):
     api_url: Optional[str] = None
     parameters: Optional[Dict[str, Any]] = None
     sample_input: Optional[Dict[str, Any]] = None
+    status: Optional[str] = None
 
 class MCPToolResponse(MCPToolBase):
     id: int
@@ -99,7 +100,6 @@ class JobAnalysisResponse(BaseModel):
         from_attributes = True
 
 class MCPToolExecuteRequest(BaseModel):
-    tool_id: int
     parameters: Dict[str, Any]
 
 class MCPToolExecuteResponse(BaseModel):

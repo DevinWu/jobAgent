@@ -91,8 +91,21 @@ def update_mcp_tool(db: Session, tool_id: int, tool_update: schemas.MCPToolUpdat
     db_tool = db.query(models.MCPTool).filter(models.MCPTool.id == tool_id).first()
     if db_tool:
         update_data = tool_update.dict(exclude_unset=True)
+        
+        # 特殊处理状态字段
+        if 'status' in update_data:
+            status_str = update_data.pop('status')
+            if status_str:
+                try:
+                    status_enum = models.MCPToolStatus(status_str)
+                    db_tool.status = status_enum
+                except ValueError:
+                    raise ValueError(f"Invalid status: {status_str}")
+        
+        # 更新其他字段
         for field, value in update_data.items():
             setattr(db_tool, field, value)
+        
         db.commit()
         db.refresh(db_tool)
     return db_tool

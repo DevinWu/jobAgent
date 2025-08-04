@@ -5,6 +5,7 @@ from ..crud import get_mcp_tools, get_mcp_tool, create_mcp_tool, update_mcp_tool
 from .. import schemas, models
 from ..database import get_db
 from ..auth import get_current_user, get_current_admin_user
+from app.tools.common_tools import get_tool_by_name
 
 router = APIRouter(prefix="/mcp-tools", tags=["mcp-tools"])
 
@@ -48,7 +49,11 @@ def update_mcp_tool_endpoint(
         raise HTTPException(status_code=404, detail="MCP Tool not found")
     if db_tool.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    return update_mcp_tool(db=db, tool_id=tool_id, tool_update=tool_update)
+    
+    try:
+        return update_mcp_tool(db=db, tool_id=tool_id, tool_update=tool_update)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/{tool_id}/admin", response_model=schemas.MCPToolResponse)
 def admin_update_mcp_tool(
@@ -62,21 +67,6 @@ def admin_update_mcp_tool(
         raise HTTPException(status_code=404, detail="MCP Tool not found")
     return update_mcp_tool_admin(db=db, tool_id=tool_id, admin_update=admin_update)
 
-@router.post("/add/execute", response_model=schemas.MCPToolExecuteResponse)
-async def execute_mcp_tool_add(parameters):
-    if "first" not in parameters or "second" not in parameters:
-        raise HTTPException(status_code=400, detail="Missing parameters")
-
-    if not isinstance(parameters["first"], int) or not isinstance(parameters["second"], int):
-        raise HTTPException(status_code=400, detail="Parameters must be integers")
-
-    return schemas.MCPToolExecuteResponse(
-        success=True,
-        response={
-            "result": parameters["first"] + parameters["second"]
-        }
-    )
-
 @router.post("/{tool_id}/execute", response_model=schemas.MCPToolExecuteResponse)
 async def execute_mcp_tool(
     tool_id: int,
@@ -84,9 +74,24 @@ async def execute_mcp_tool(
     db: Session = Depends(get_db)
 ):
     db_tool = get_mcp_tool(db, tool_id=tool_id)
+    print(f"execute {db_tool} with parameters {execute_request.parameters}")
     if db_tool is None:
         raise HTTPException(status_code=404, detail="MCP Tool not found")
-    
+
+    if not db_tool.api_url.startswith("http"):
+        local_tool = get_tool_by_name(db_tool.api_url)
+        if local_tool is None:
+            raise HTTPException(status_code=404, detail="Local Tool not found")
+        response = local_tool(**execute_request.parameters)
+
+        db_tool.sample_input = execute_request.parameters
+        mcp_tool_update = schemas.MCPToolUpdate(sample_input=execute_request.parameters)
+        update_mcp_tool(db, tool_id, mcp_tool_update)
+        return schemas.MCPToolExecuteResponse(
+            success=True,
+            response={'result': response}
+        )
+
     try:
         import httpx
         async with httpx.AsyncClient() as client:
