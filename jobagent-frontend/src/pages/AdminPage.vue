@@ -117,16 +117,92 @@
         <h3 class="mb-4">{{ testingTool.title }}</h3>
         <p class="text-gray-600 mb-4">Creator: {{ testingTool.creator?.username }}</p>
         
-        <el-form label-width="120px">
-          <el-form-item label="Test Parameters">
-            <el-input
-              v-model="testParameters"
-              type="textarea"
-              :rows="4"
-              placeholder="Enter test parameters as JSON"
-            />
-          </el-form-item>
-        </el-form>
+        <!-- 动态参数表单 -->
+        <div v-if="testingTool.parameters && Object.keys(testingTool.parameters).length > 0">
+          <el-form label-width="120px">
+            <el-form-item 
+              v-for="(config, name) in testingTool.parameters" 
+              :key="name"
+              :label="name"
+              :required="config.required"
+            >
+              <!-- 字符串类型 -->
+              <el-input 
+                v-if="config.type === 'str'" 
+                v-model="testParamValues[name]" 
+                placeholder="Enter string value"
+              />
+              
+              <!-- 整数类型 -->
+              <el-input-number 
+                v-else-if="config.type === 'int'" 
+                v-model="testParamValues[name]" 
+                :controls="true"
+                :precision="0"
+                style="width: 100%"
+              />
+              
+              <!-- 浮点数类型 -->
+              <el-input-number 
+                v-else-if="config.type === 'float'" 
+                v-model="testParamValues[name]" 
+                :controls="true"
+                :precision="2"
+                style="width: 100%"
+              />
+              
+              <!-- 布尔类型 -->
+              <el-switch 
+                v-else-if="config.type === 'bool'" 
+                v-model="testParamValues[name]"
+              />
+              
+              <!-- 列表类型 -->
+              <el-input 
+                v-else-if="config.type === 'list'" 
+                v-model.lazy="testParamValues[name]" 
+                type="textarea"
+                :rows="2"
+                placeholder="Enter as JSON array: [1, 2, 3]"
+                @change="validateJsonInput(name, 'list')"
+              />
+              
+              <!-- 字典类型 -->
+              <el-input 
+                v-else-if="config.type === 'dict'" 
+                v-model.lazy="testParamValues[name]" 
+                type="textarea"
+                :rows="2"
+                placeholder="Enter as JSON object: {'key': 'value'}"
+                @change="validateJsonInput(name, 'dict')"
+              />
+              
+              <!-- 默认输入框 -->
+              <el-input 
+                v-else 
+                v-model="testParamValues[name]" 
+                placeholder="Enter value"
+              />
+              
+              <span class="param-type-hint">{{ config.type }}</span>
+            </el-form-item>
+          </el-form>
+          
+          <!-- JSON预览 -->
+          <el-collapse class="mt-4">
+            <el-collapse-item title="JSON Preview">
+              <pre class="json-preview">{{ JSON.stringify(testParamValues, null, 2) }}</pre>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+        
+        <!-- 无参数情况 -->
+        <el-alert
+          v-else
+          title="This tool has no parameters"
+          type="info"
+          :closable="false"
+        />
         
         <div v-if="testResult" class="mt-4">
           <h4 class="mb-2">Test Result:</h4>
@@ -229,6 +305,7 @@ const rejectingDomain = ref<Domain | null>(null)
 const changingRoleUser = ref<User | null>(null)
 const testParameters = ref('')
 const testResult = ref<any>(null)
+const testParamValues = ref<Record<string, any>>({})
 const rejectionReason = ref('')
 const domainRejectionReason = ref('')
 const newUserRole = ref('')

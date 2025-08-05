@@ -163,16 +163,93 @@
                     </div>
                     
                     <div v-else-if="selectedTool" class="tool-config">
-                      <el-form-item label="Parameters">
-                        <el-input
-                          v-model="configJson"
-                          type="textarea"
-                          :rows="4"
-                          size="small"
-                          placeholder="Configure tool parameters (JSON)"
-                          @input="handleConfigChange"
-                        />
-                      </el-form-item>
+                      <div v-if="selectedTool.parameters && Object.keys(selectedTool.parameters).length > 0">
+                        <div v-for="(paramConfig, paramName) in selectedTool.parameters" :key="paramName" class="param-item">
+                          <el-form-item :label="paramName">
+                            <!-- 字符串类型 -->
+                            <el-input
+                              v-if="paramConfig.type === 'str'"
+                              v-model="toolParamValues[paramName]"
+                              size="small"
+                              @input="updateConfigJson"
+                            />
+                            
+                            <!-- 整数类型 -->
+                            <el-input-number
+                              v-else-if="paramConfig.type === 'int'"
+                              v-model="toolParamValues[paramName]"
+                              :precision="0"
+                              :step="1"
+                              size="small"
+                              @change="updateConfigJson"
+                            />
+                            
+                            <!-- 浮点数类型 -->
+                            <el-input-number
+                              v-else-if="paramConfig.type === 'float'"
+                              v-model="toolParamValues[paramName]"
+                              :precision="2"
+                              :step="0.1"
+                              size="small"
+                              @change="updateConfigJson"
+                            />
+                            
+                            <!-- 布尔类型 -->
+                            <el-switch
+                              v-else-if="paramConfig.type === 'bool'"
+                              v-model="toolParamValues[paramName]"
+                              @change="updateConfigJson"
+                            />
+                            
+                            <!-- 列表类型 -->
+                            <div v-else-if="paramConfig.type === 'list'" class="complex-type-input">
+                              <el-input
+                                v-model="toolParamValues[paramName]"
+                                type="textarea"
+                                :rows="3"
+                                size="small"
+                                placeholder="Enter JSON array"
+                                @blur="validateJsonInput(paramName, 'list'); updateConfigJson()"
+                              />
+                            </div>
+                            
+                            <!-- 字典类型 -->
+                            <div v-else-if="paramConfig.type === 'dict'" class="complex-type-input">
+                              <el-input
+                                v-model="toolParamValues[paramName]"
+                                type="textarea"
+                                :rows="3"
+                                size="small"
+                                placeholder="Enter JSON object"
+                                @blur="validateJsonInput(paramName, 'dict'); updateConfigJson()"
+                              />
+                            </div>
+                            
+                            <!-- 默认为字符串类型 -->
+                            <el-input
+                              v-else
+                              v-model="toolParamValues[paramName]"
+                              size="small"
+                              @input="updateConfigJson"
+                            />
+                          </el-form-item>
+                          
+                          <div v-if="paramConfig.description" class="param-description">
+                            <small>{{ paramConfig.description }}</small>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div v-else class="no-params">
+                        <p>This tool has no configurable parameters.</p>
+                      </div>
+                      
+                      <el-collapse class="json-preview">
+                        <el-collapse-item title="JSON Preview">
+                          <pre>{{ configJson }}</pre>
+                        </el-collapse-item>
+                      </el-collapse>
+                      
                       <div class="api-url">
                         <small>API URL: {{ selectedTool.api_url }}</small>
                       </div>
@@ -251,6 +328,7 @@ const workflowStore = useWorkflowStore()
 
 const activeTab = ref('create')
 const configJson = ref('')
+const toolParamValues = ref<Record<string, any>>({})
 const myDomains = ref<Domain[]>([])
 const loadingDomains = ref(false)
 const availableTools = ref<MCPTool[]>([])
@@ -283,8 +361,10 @@ onMounted(() => {
 watch(() => workflowStore.selectedNode, (newNode) => {
   if (newNode && newNode.type === 'mcp_tool') {
     configJson.value = JSON.stringify(newNode.data.config || {}, null, 2)
+    initToolParamValues()
   } else {
     configJson.value = ''
+    toolParamValues.value = {}
   }
 })
 
@@ -368,13 +448,152 @@ const handleNodeDelete = (nodeId: string) => {
   workflowStore.removeNode(nodeId)
 }
 
+// 验证JSON输入
+const validateJsonInput = (paramName: string, type: 'list' | 'dict') => {
+  try {
+    const value = toolParamValues.value[paramName]
+    
+    // 如果是空字符串，设置为空数组或空对象
+    if (value === '') {
+      toolParamValues.value[paramName] = type === 'list' ? [] : {}
+      return
+    }
+    
+    // 如果是字符串，尝试解析
+    if (typeof value === 'string') {
+      const parsed = JSON.parse(value)
+      
+      // 验证类型
+      if (type === 'list' && !Array.isArray(parsed)) {
+        ElMessage.warning(`参数 ${paramName} 应该是一个数组`)
+        return
+      }
+      
+      if (type === 'dict' && (Array.isArray(parsed) || typeof parsed !== 'object' || parsed === null)) {
+        ElMessage.warning(`参数 ${paramName} 应该是一个对象`)
+        return
+      }
+      
+      // 更新值为解析后的对象
+      toolParamValues.value[paramName] = parsed
+    }
+  } catch (err) {
+    ElMessage.error(`参数 ${paramName} 的JSON格式无效`)
+  }
+}
+
+// 根据参数类型获取默认值
+const getDefaultValueForType = (type: string) => {
+  switch (type) {
+    case 'str':
+      return ''
+    case 'int':
+      return 0
+    case 'float':
+      return 0.0
+    case 'bool':
+      return false
+    case 'list':
+      return '[]'
+    case 'dict':
+      return '{}'
+    default:
+      return ''
+  }
+}
+
+// 初始化工具参数值
+const initToolParamValues = () => {
+  if (!selectedTool.value || !selectedTool.value.parameters) {
+    toolParamValues.value = {}
+    return
+  }
+  
+  const initialValues: Record<string, any> = {}
+  
+  Object.entries(selectedTool.value.parameters).forEach(([name, config]) => {
+    if (typeof config === 'object' && config !== null) {
+      const paramType = (config as any).type || 'str'
+      
+      // 如果节点已有配置，使用现有值
+      if (workflowStore.selectedNode && 
+          workflowStore.selectedNode.data.config && 
+          workflowStore.selectedNode.data.config[name] !== undefined) {
+        initialValues[name] = workflowStore.selectedNode.data.config[name]
+      } else {
+        // 否则使用默认值
+        initialValues[name] = getDefaultValueForType(paramType)
+      }
+    }
+  })
+  
+  toolParamValues.value = initialValues
+  
+  // 同步到configJson
+  updateConfigJson()
+}
+
+// 处理复杂类型的参数值
+const prepareParamValue = (value: any, type: string) => {
+  if (type === 'list' || type === 'dict') {
+    // 如果已经是对象或数组，直接返回
+    if (typeof value === 'object' && value !== null) {
+      return value
+    }
+    
+    // 如果是字符串，尝试解析
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value)
+      } catch (err) {
+        // 解析失败，返回空数组或空对象
+        return type === 'list' ? [] : {}
+      }
+    }
+    
+    // 默认返回空数组或空对象
+    return type === 'list' ? [] : {}
+  }
+  
+  return value
+}
+
+// 更新configJson
+const updateConfigJson = () => {
+  const config: Record<string, any> = {}
+  
+  if (selectedTool.value && selectedTool.value.parameters) {
+    Object.entries(selectedTool.value.parameters).forEach(([name, paramConfig]) => {
+      if (typeof paramConfig === 'object' && paramConfig !== null) {
+        const paramType = (paramConfig as any).type || 'str'
+        if (toolParamValues.value[name] !== undefined) {
+          config[name] = prepareParamValue(toolParamValues.value[name], paramType)
+        }
+      }
+    })
+  }
+  
+  configJson.value = JSON.stringify(config, null, 2)
+  
+  // 更新节点配置
+  if (workflowStore.selectedNode && selectedTool.value) {
+    workflowStore.updateNodeData(workflowStore.selectedNode.id, { config })
+  }
+}
+
 const handleConfigChange = () => {
   if (!workflowStore.selectedNode) return
   
   try {
     const config = JSON.parse(configJson.value)
     workflowStore.updateNodeData(workflowStore.selectedNode.id, { config })
+    
+    // 同步到toolParamValues
+    Object.entries(config).forEach(([key, value]) => {
+      toolParamValues.value[key] = value
+    })
   } catch (error) {
+    // 无效的JSON，不更新配置
   }
 }
 
@@ -564,5 +783,47 @@ const formatDate = (dateString: string) => {
   text-align: center;
   color: #999;
   margin-top: 50px;
+}
+
+.param-item {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #eee;
+}
+
+.param-item:last-child {
+  border-bottom: none;
+}
+
+.param-description {
+  margin-top: 4px;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.complex-type-input {
+  margin-top: 4px;
+}
+
+.json-preview {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  border-top: 1px solid #eee;
+  padding-top: 12px;
+}
+
+.json-preview pre {
+  background-color: #f5f7fa;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+.no-params {
+  color: #999;
+  font-style: italic;
+  padding: 10px 0;
 }
 </style>
