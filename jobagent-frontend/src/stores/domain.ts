@@ -6,6 +6,7 @@ export const useDomainStore = defineStore('domain', () => {
   const description = ref('')
   const loading = ref(false)
   const error = ref('')
+  const editingId = ref<number | null>(null)
 
   const setTitle = (newTitle: string) => {
     title.value = newTitle
@@ -27,11 +28,16 @@ export const useDomainStore = defineStore('domain', () => {
     error.value = ''
   }
 
+  const setEditingId = (id: number | null) => {
+    editingId.value = id
+  }
+
   const reset = () => {
     title.value = ''
     description.value = ''
     loading.value = false
     error.value = ''
+    editingId.value = null
   }
 
   return {
@@ -39,11 +45,13 @@ export const useDomainStore = defineStore('domain', () => {
     description,
     loading,
     error,
+    editingId,
     setTitle,
     setDescription,
     setLoading,
     setError,
     clearError,
+    setEditingId,
     reset
   }
 })

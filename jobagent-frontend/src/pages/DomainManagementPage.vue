@@ -282,6 +282,29 @@
                 {{ formatDate(scope.row.created_at) }}
               </template>
             </el-table-column>
+            <el-table-column label="Actions" width="200">
+              <template #default="scope">
+                <div class="action-buttons-cell">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="handleEditDomain(scope.row)"
+                  >
+                    <el-icon><Edit /></el-icon>
+                    Edit
+                  </el-button>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="handleDeleteDomain(scope.row)"
+                    :disabled="scope.row.status === 'published'"
+                  >
+                    <el-icon><Delete /></el-icon>
+                    Delete
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
           </el-table>
         </el-tab-pane>
 
@@ -302,17 +325,28 @@
                 {{ formatDate(scope.row.created_at) }}
               </template>
             </el-table-column>
-            <el-table-column label="Actions" width="120">
+            <el-table-column label="Actions" width="200">
               <template #default="scope">
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click="handleDeleteDomain(scope.row)"
-                  :disabled="scope.row.status === 'published'"
-                >
-                  <el-icon><Delete /></el-icon>
-                  Delete
-                </el-button>
+                <div class="action-buttons-cell">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="handleEditDomain(scope.row)"
+                    :disabled="scope.row.status === 'published'"
+                  >
+                    <el-icon><Edit /></el-icon>
+                    Edit
+                  </el-button>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="handleDeleteDomain(scope.row)"
+                    :disabled="scope.row.status === 'published'"
+                  >
+                    <el-icon><Delete /></el-icon>
+                    Delete
+                  </el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -328,7 +362,7 @@ import { useRouter } from 'vue-router'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
-import { Document, Upload, Plus, Delete } from '@element-plus/icons-vue'
+import { Document, Upload, Plus, Delete, Edit } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { useDomainStore } from '@/stores/domain'
@@ -620,6 +654,91 @@ const validateFlow = () => {
   return true
 }
 
+const handleEditDomain = async (domain: Domain) => {
+  try {
+    // 获取域名的详细信息
+    const response = await domainsAPI.getDomain(domain.id)
+    const domainDetail = response.data
+    
+    // 详细打印domainDetail和flow_config
+    console.log('Domain Detail:', domainDetail)
+    console.log('Flow Config:', domainDetail.flow_config)
+    
+    if (domainDetail.flow_config) {
+      console.log('Flow Config Type:', typeof domainDetail.flow_config)
+      console.log('Flow Config Nodes:', domainDetail.flow_config.nodes)
+      console.log('Flow Config Connections:', domainDetail.flow_config.connections || domainDetail.flow_config.edges)
+    }
+
+    // 设置domainStore
+    domainStore.setTitle(domainDetail.title)
+    domainStore.setDescription(domainDetail.description)
+    domainStore.setEditingId(domainDetail.id)
+
+    // 设置workflowStore
+    if (domainDetail.flow_config) {
+      try {
+        // 如果flow_config是字符串，尝试解析它
+        const flowConfig = typeof domainDetail.flow_config === 'string' 
+          ? JSON.parse(domainDetail.flow_config) 
+          : domainDetail.flow_config
+          
+        console.log('Parsed Flow Config:', flowConfig)
+        
+        // 确保flow_config有正确的结构
+        if (!flowConfig.nodes) {
+          console.error('Flow config does not have nodes array')
+          ElMessage.warning('Invalid workflow configuration, creating a new one')
+          workflowStore.reset()
+        } else {
+          // 在加载前重置工作流
+          workflowStore.reset()
+          
+          // 加载flow_config
+          workflowStore.loadFlowConfig(flowConfig)
+          
+          // 验证加载是否成功
+          setTimeout(() => {
+            console.log('Verifying loaded workflow:')
+            console.log('Current nodes:', workflowStore.nodes)
+            console.log('Current edges:', workflowStore.edges)
+            
+            if (workflowStore.nodes.length === 0) {
+              console.warn('No nodes were loaded from flow_config')
+              ElMessage.warning('Failed to load workflow nodes, creating a new one')
+              workflowStore.reset()
+            } else {
+              // 确保域节点的标题与域名标题一致
+              const domainNode = workflowStore.nodes.find(node => node.type === 'domain')
+              if (domainNode) {
+                domainNode.data.title = domainStore.title
+                console.log('Updated domain node title:', domainNode)
+              }
+              
+              ElMessage.success(`Successfully loaded workflow with ${workflowStore.nodes.length} nodes`)
+            }
+          }, 100) // 短暂延迟以确保Vue更新完成
+        }
+      } catch (error) {
+        console.error('Error loading flow config:', error)
+        ElMessage.error(`Failed to load workflow: ${error.message}`)
+        workflowStore.reset()
+      }
+    } else {
+      console.log('No flow config found, resetting workflow')
+      workflowStore.reset()
+    }
+    
+    // 切换到创建标签页
+    activeTab.value = 'create'
+    
+    ElMessage.info('You are now editing the domain. Save as draft or submit for review when done.')
+  } catch (err: any) {
+    const errorMessage = err.response?.data?.detail || 'Failed to load domain for editing'
+    ElMessage.error(errorMessage)
+  }
+}
+
 const handleSave = async (submitForReview = false) => {
   if (!validateFlow()) return
 
@@ -636,9 +755,15 @@ const handleSave = async (submitForReview = false) => {
       status: submitForReview ? 'waiting_for_admin_review' : 'draft'
     }
 
-    await domainsAPI.createDomain(domainData)
-    
-    ElMessage.success(submitForReview ? 'Domain submitted for review!' : 'Domain saved as draft!')
+    if (domainStore.editingId) {
+      // 更新现有域名
+      await domainsAPI.updateDomain(domainStore.editingId, domainData)
+      ElMessage.success(submitForReview ? 'Domain updated and submitted for review!' : 'Domain updated as draft!')
+    } else {
+      // 创建新域名
+      await domainsAPI.createDomain(domainData)
+      ElMessage.success(submitForReview ? 'Domain submitted for review!' : 'Domain saved as draft!')
+    }
     
     domainStore.reset()
     workflowStore.reset()

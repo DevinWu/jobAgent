@@ -80,6 +80,96 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
   }
 
+  const loadFlowConfig = (flowConfig: any) => {
+    console.log('Loading flow config:', flowConfig)
+
+    if (!flowConfig || !flowConfig.nodes) {
+      console.warn('Invalid flow config, resetting workflow')
+      reset()
+      return
+    }
+
+    try {
+      // 清空现有节点和边
+      nodes.value = []
+      edges.value = []
+
+      // 创建一个新的域节点（如果不存在）
+      let hasDomainNode = false
+
+      // 加载节点
+      flowConfig.nodes.forEach((node: any) => {
+        try {
+          // 检查是否是域节点
+          if (node.type === 'domain') {
+            hasDomainNode = true
+          }
+
+          // 确保节点至少有必要的属性
+          const safeNode: FlowNode = {
+            id: node.id,
+            type: node.type || 'unknown',
+            position: node.position || { x: 0, y: 0 },
+            data: {
+              title: node.data?.title || 'Untitled',
+              tool_id: node.data?.tool_id,
+              config: node.data?.config || {}
+            }
+          }
+
+          // 添加节点
+          nodes.value.push(safeNode)
+          console.log('Loaded node:', safeNode)
+        } catch (nodeError) {
+          console.error('Error loading node:', nodeError, node)
+        }
+      })
+
+      // 如果没有域节点，创建一个
+      if (!hasDomainNode) {
+        const domainNode: FlowNode = {
+          id: 'domain',
+          type: 'domain',
+          position: { x: 400, y: 100 },
+          data: { title: 'Domain' }
+        }
+        nodes.value.push(domainNode)
+        console.log('Created default domain node:', domainNode)
+      }
+
+      // 加载连接 - 支持connections或edges属性名
+      const connectionsList = flowConfig.connections || flowConfig.edges || []
+      connectionsList.forEach((edge: any) => {
+        try {
+          // 确保边至少有必要的属性
+          if (edge.source && edge.target) {
+            const safeEdge: FlowEdge = {
+              id: edge.id || `e-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              source: edge.source,
+              target: edge.target
+            }
+
+            // 添加边
+            edges.value.push(safeEdge)
+            console.log('Loaded edge:', safeEdge)
+          } else {
+            console.warn('Skipping edge with missing source or target:', edge)
+          }
+        } catch (edgeError) {
+          console.error('Error loading edge:', edgeError, edge)
+        }
+      })
+
+      console.log('Flow config loaded successfully:', { nodes: nodes.value, edges: edges.value })
+    } catch (error) {
+      console.error('Error while loading flow config:', error)
+      reset()
+    }
+
+    // 重置选中状态
+    selectedNodeId.value = null
+  }
+
   const reset = () => {
     nodes.value = [
       {
@@ -108,6 +198,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     updateDomainTitle,
     validateFlow,
     getFlowConfig,
+    loadFlowConfig,
     reset
   }
 })
