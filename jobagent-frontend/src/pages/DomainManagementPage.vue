@@ -74,7 +74,10 @@
                       draggable="true"
                       @dragstart="handleDragStart(tool, $event)"
                     >
-                      <el-tag type="info">{{ tool.title }}</el-tag>
+                      <div class="tool-block">
+                        <div class="tool-title">{{ tool.title }}</div>
+                        <div class="tool-type">MCP Tool</div>
+                      </div>
                     </div>
                     
                     <div class="create-tool-item">
@@ -368,7 +371,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useDomainStore } from '@/stores/domain'
 import { useWorkflowStore } from '@/stores/workflow'
 import { domainsAPI, mcpToolsAPI } from '@/utils/api'
-import type { MCPTool, FlowNode, Domain } from '@/types'
+import type { MCPTool, FlowNode, FlowEdge, Domain } from '@/types'
 
 const router = useRouter()
 const domainStore = useDomainStore()
@@ -471,8 +474,10 @@ const handleDrop = (event: DragEvent) => {
     
     const tool: MCPTool = JSON.parse(toolData)
     
+    // 创建新节点
+    const newNodeId = `tool_${Date.now()}`
     const newNode: FlowNode = {
-      id: `tool_${Date.now()}`,
+      id: newNodeId,
       type: 'mcp_tool',
       position: { x: event.offsetX - 75, y: event.offsetY - 25 },
       data: {
@@ -482,9 +487,30 @@ const handleDrop = (event: DragEvent) => {
       }
     }
     
+    // 添加新节点
     workflowStore.addNode(newNode)
+    
+    // 查找domain节点
+    const domainNode = workflowStore.nodes.find(node => node.type === 'domain')
+    
+    if (domainNode) {
+      // 创建从domain节点到新节点的连接
+      const newEdge: FlowEdge = {
+        id: `e-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        source: domainNode.id,
+        target: newNodeId
+      }
+      
+      // 添加新连接
+      workflowStore.addEdge(newEdge)
+      
+      console.log('Created connection from domain to new tool:', newEdge)
+    }
+    
+    ElMessage.success(`Added ${tool.title} to workflow`)
   } catch (error) {
     console.error('Failed to parse dropped tool data:', error)
+    ElMessage.error('Failed to add tool to workflow')
   }
 }
 
@@ -861,15 +887,37 @@ const handleDeleteDomain = (domain: Domain) => {
 
 .tool-item {
   cursor: move;
-  padding: 8px;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  background: #f5f7fa;
-  transition: background-color 0.3s;
+  margin-bottom: 12px;
+  transition: transform 0.2s;
 }
 
 .tool-item:hover {
+  transform: translateY(-2px);
+}
+
+.tool-block {
+  padding: 10px;
+  border-radius: 6px;
+  border: 2px solid #1890ff;
   background: #e6f7ff;
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s;
+}
+
+.tool-item:hover .tool-block {
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+.tool-title {
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.tool-type {
+  font-size: 10px;
+  color: #666;
 }
 
 .create-tool-item {

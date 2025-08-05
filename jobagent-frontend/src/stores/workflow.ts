@@ -185,6 +185,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
     selectedNodeId.value = null
   }
 
+  const addEdge = (edge: FlowEdge) => {
+    edges.value.push(edge)
+  }
+
   return {
     nodes,
     edges,
@@ -199,6 +203,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     validateFlow,
     getFlowConfig,
     loadFlowConfig,
-    reset
+    reset,
+    addEdge
   }
 })
