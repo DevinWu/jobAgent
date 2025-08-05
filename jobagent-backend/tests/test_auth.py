@@ -1,5 +1,3 @@
-import sqlite3
-import os
 from app.auth import verify_password, get_password_hash
 
 

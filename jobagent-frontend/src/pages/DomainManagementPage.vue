@@ -47,6 +47,7 @@
                 <el-icon><Document /></el-icon>
                 Save Draft
               </el-button>
+
               <el-button
                 type="primary"
                 @click="handleSave(true)"
@@ -54,7 +55,7 @@
                 :disabled="domainStore.loading"
               >
                 <el-icon><Upload /></el-icon>
-                Create New Domain
+                Submit For Review
               </el-button>
             </div>
 

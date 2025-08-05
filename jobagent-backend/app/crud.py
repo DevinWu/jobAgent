@@ -47,7 +47,8 @@ def create_domain(db: Session, domain: schemas.DomainCreate, creator_id: int):
         title=domain.title,
         description=domain.description,
         flow_config=domain.flow_config,
-        creator_id=creator_id
+        creator_id=creator_id,
+        status=domain.status
     )
     db.add(db_domain)
     db.commit()

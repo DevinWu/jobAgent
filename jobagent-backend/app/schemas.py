@@ -24,6 +24,7 @@ class DomainBase(BaseModel):
     flow_config: Dict[str, Any]
 
 class DomainCreate(DomainBase):
+    status: Optional[DomainStatus] = None
     pass
 
 class DomainUpdate(BaseModel):
