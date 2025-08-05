@@ -34,6 +34,7 @@ export const domainsAPI = {
   createDomain: (domainData: any) => api.post('/domains/', domainData),
   updateDomain: (id: number, domainData: any) => api.put(`/domains/${id}`, domainData),
   adminUpdateDomain: (id: number, adminData: any) => api.put(`/domains/${id}/admin`, adminData),
+  deleteDomain: (id: number) => api.delete(`/domains/${id}`),
 }
 
 export const mcpToolsAPI = {

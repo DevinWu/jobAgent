@@ -302,6 +302,19 @@
                 {{ formatDate(scope.row.created_at) }}
               </template>
             </el-table-column>
+            <el-table-column label="Actions" width="120">
+              <template #default="scope">
+                <el-button
+                  type="danger"
+                  size="small"
+                  @click="handleDeleteDomain(scope.row)"
+                  :disabled="scope.row.status === 'published'"
+                >
+                  <el-icon><Delete /></el-icon>
+                  Delete
+                </el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </el-tab-pane>
       </el-tabs>
@@ -316,7 +329,7 @@ import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { Document, Upload, Plus, Delete } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { useDomainStore } from '@/stores/domain'
 import { useWorkflowStore } from '@/stores/workflow'
@@ -657,6 +670,32 @@ const getStatusType = (status: string) => {
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString()
+}
+
+const handleDeleteDomain = (domain: Domain) => {
+  ElMessageBox.confirm(
+    `Are you sure you want to delete the domain "${domain.title}"? This action cannot be undone.`,
+    'Warning',
+    {
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+      type: 'warning',
+    }
+  )
+    .then(async () => {
+      try {
+        await domainsAPI.deleteDomain(domain.id)
+        ElMessage.success('Domain deleted successfully')
+        // Reload the domains list
+        loadMyDomains()
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.detail || 'Failed to delete domain'
+        ElMessage.error(errorMessage)
+      }
+    })
+    .catch(() => {
+      // User canceled the deletion
+    })
 }
 </script>
 

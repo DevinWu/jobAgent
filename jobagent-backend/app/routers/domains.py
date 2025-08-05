@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ..crud import get_domains, get_domain, create_domain, update_domain, update_domain_admin
+from ..crud import get_domains, get_domain, create_domain, update_domain, update_domain_admin, delete_domain
 from .. import schemas, models
 from ..database import get_db
 from ..auth import get_current_user, get_current_admin_user
@@ -49,3 +49,23 @@ def admin_update_domain(
     if db_domain is None:
         raise HTTPException(status_code=404, detail="Domain not found")
     return update_domain_admin(db=db, domain_id=domain_id, admin_update=admin_update)
+
+@router.delete("/{domain_id}", response_model=Dict[str, str])
+def delete_domain_endpoint(
+    domain_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    db_domain = get_domain(db, domain_id=domain_id)
+    if db_domain is None:
+        raise HTTPException(status_code=404, detail="Domain not found")
+    
+    # 检查权限：只有 domain 的创建者或管理员可以删除
+    if db_domain.creator_id != current_user.id and current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    success = delete_domain(db=db, domain_id=domain_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete domain")
+    
+    return {"message": "Domain deleted successfully"}

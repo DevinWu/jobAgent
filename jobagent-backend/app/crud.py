@@ -169,6 +169,14 @@ def delete_mcp_tool(db: Session, tool_id: int):
         return True
     return False
 
+def delete_domain(db: Session, domain_id: int):
+    db_domain = db.query(models.Domain).filter(models.Domain.id == domain_id).first()
+    if db_domain:
+        db.delete(db_domain)
+        db.commit()
+        return True
+    return False
+
 def create_admin_user(db: Session):
     existing_admin = db.query(models.User).filter(models.User.username == "admin").first()
     if not existing_admin:

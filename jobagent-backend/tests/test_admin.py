@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app import models, schemas, crud
+from app import models
 from app.routers import admin
 from app.models import DomainStatus
 from app.database import SessionLocal, engine
@@ -8,11 +8,9 @@ from app.database import SessionLocal, engine
 models.Base.metadata.create_all(bind=engine)
 
 
-def test_get_domains_for_review():
-    # 获取数据库会话
-    db: Session = SessionLocal()
 
-    try:
+def test_get_domains_for_review(db: Session):
+    with SessionLocal() as db:
         # 创建一个已发布的域
         published_domain = models.Domain(
             title="Published Domain",
@@ -68,6 +66,3 @@ def test_get_domains_for_review():
         rejected_domains = [d for d in domains if d.status == DomainStatus.REJECTED]
         assert len(rejected_domains) == 1
         assert rejected_domains[0].title == "Rejected Domain"
-    finally:
-        # 清理资源
-        db.close()
