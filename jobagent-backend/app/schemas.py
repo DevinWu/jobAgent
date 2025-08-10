@@ -1,7 +1,8 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from .models import UserRole, JobFailureCategory, MCPToolStatus, DomainStatus
+from .models import UserRole, JobFailureCategory, MCPToolStatus, DomainStatus, JobAnalysisStatus
+
 
 class UserBase(BaseModel):
     username: str
@@ -93,6 +94,7 @@ class JobAnalysisResponse(BaseModel):
     domain_id: int
     failure_category: JobFailureCategory
     root_cause_analysis: str
+    analysis_status: JobAnalysisStatus
     user_suggestions: str
     analysis_data: Optional[Dict[str, Any]]
     created_at: datetime

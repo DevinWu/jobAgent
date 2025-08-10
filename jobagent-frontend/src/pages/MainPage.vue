@@ -103,6 +103,13 @@
             {{ formatDate(scope.row.created_at) }}
           </template>
         </el-table-column>
+        <el-table-column prop="analysis_status" label="Status" min-width="120">
+          <template #default="scope">
+            <el-tag :type="getAnalysisStatusType(scope.row.analysis_status)">
+              {{ formatAnalysisStatus(scope.row.analysis_status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="Actions" width="120" fixed="right">
           <template #default="scope">
             <el-button
@@ -281,6 +288,36 @@ const getFailureCategoryType = (category: string) => {
       return 'danger'
     default:
       return 'info'
+  }
+}
+
+const getAnalysisStatusType = (status: string) => {
+  switch (status) {
+    case 'in_progress':
+      return 'warning'
+    case 'completed':
+      return ''
+    case 'accepted':
+      return 'success'
+    case 'manually_corrected':
+      return 'info'
+    default:
+      return 'info'
+  }
+}
+
+const formatAnalysisStatus = (status: string) => {
+  switch (status) {
+    case 'in_progress':
+      return 'In Progress'
+    case 'completed':
+      return 'Completed'
+    case 'accepted':
+      return 'Accepted'
+    case 'manually_corrected':
+      return 'Manually Corrected'
+    default:
+      return status
   }
 }
 

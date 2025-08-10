@@ -47,8 +47,8 @@ async def analyze_job(
         domain_id=analysis_request.domain_id,
         analysis_status=models.JobAnalysisStatus.IN_PROGRESS,
         failure_category=failure_category,
-        root_cause=root_cause,
-        suggestions=suggestions,
+        root_cause='',
+        suggestions='',
         analysis_data=analysis_data
     )
     
