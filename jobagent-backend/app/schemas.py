@@ -107,3 +107,7 @@ class MCPToolExecuteResponse(BaseModel):
     success: bool
     response: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+
+class JobAnalysisListResponse(BaseModel):
+    results: List[JobAnalysisResponse]
+    count: int
