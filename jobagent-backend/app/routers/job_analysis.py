@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ..crud import get_job_analysis, create_job_analysis, get_domain
+from typing import List
+from ..crud import get_job_analysis, create_job_analysis, get_domain, get_job_analyses_by_domain
+from ..auth import get_current_user
 from .. import schemas, models
 from ..database import get_db
 from ..auth import get_current_user
@@ -52,7 +54,31 @@ def get_job_analysis_result(
     domain_id: int,
     db: Session = Depends(get_db)
 ):
+    print(f"get_job_analysis_result for job: {job_id}, domain: {domain_id}")
     analysis = get_job_analysis(db, job_id, domain_id)
     if not analysis:
-        raise HTTPException(status_code=404, detail="Job analysis not found")
+        raise HTTPException(status_code=404, detail="Job analysis jobs not found")
     return analysis
+
+@router.get("/jobs/domain/{domain_id}", response_model=List[schemas.JobAnalysisResponse])
+def get_domain_job_analyses(
+    domain_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    获取指定 domain id 下的所有 job 分析结果
+    """
+    print(f"get_domain_job_analyses for domain: {domain_id}")
+    # 检查 domain 是否存在
+    domain = get_domain(db, domain_id=domain_id)
+    if not domain:
+        raise HTTPException(status_code=404, detail="Domain not found")
+    
+    # 获取该 domain 下的所有 job 分析结果
+    analyses = get_job_analyses_by_domain(db, domain_id=domain_id, skip=skip, limit=limit)
+    if not analyses:
+        return []
+    return analyses

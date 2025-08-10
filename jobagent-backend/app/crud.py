@@ -177,6 +177,14 @@ def delete_domain(db: Session, domain_id: int):
         return True
     return False
 
+def get_job_analyses_by_domain(db: Session, domain_id: int, skip: int = 0, limit: int = 100):
+    """
+    获取指定 domain id 下的所有 job 分析结果
+    """
+    return db.query(models.JobAnalysis).filter(
+        models.JobAnalysis.domain_id == domain_id
+    ).offset(skip).limit(limit).all()
+
 def create_admin_user(db: Session):
     existing_admin = db.query(models.User).filter(models.User.username == "admin").first()
     if not existing_admin:
