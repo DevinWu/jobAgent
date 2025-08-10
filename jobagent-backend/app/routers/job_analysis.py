@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+
+from sqlalchemy.sql.functions import count
+
 from ..crud import get_job_analysis, create_job_analysis, get_domain, get_job_analyses_by_domain
 from ..auth import get_current_user
 from .. import schemas, models
@@ -60,7 +63,7 @@ def get_job_analysis_result(
         raise HTTPException(status_code=404, detail="Job analysis jobs not found")
     return analysis
 
-@router.get("/jobs/domain/{domain_id}", response_model=List[schemas.JobAnalysisResponse])
+@router.get("/jobs/domain/{domain_id}", response_model=schemas.JobAnalysisListResponse)
 def get_domain_job_analyses(
     domain_id: int,
     skip: int = 0,
@@ -81,4 +84,7 @@ def get_domain_job_analyses(
     analyses = get_job_analyses_by_domain(db, domain_id=domain_id, skip=skip, limit=limit)
     if not analyses:
         return []
-    return analyses
+    print(f"Return a job list with size: {len(analyses)}")
+    if len(analyses) >= 1:
+        print(f"show one jobs with detail: {analyses[0]}")
+    return schemas.JobAnalysisListResponse(results=analyses, count=len(analyses))

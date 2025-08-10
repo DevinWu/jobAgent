@@ -54,6 +54,8 @@ export const jobAnalysisAPI = {
     api.post('/job-analysis/', { job_id: jobId, domain_id: domainId }),
   getAnalysis: (jobId: string, domainId: number) =>
     api.get(`/job-analysis/${jobId}/${domainId}`),
+  getDomainAnalyses: (domainId: number, params?: { page?: number; page_size?: number; search?: string }) =>
+    api.get(`/job-analysis/jobs/domain/${domainId}`, { params }),
 }
 
 export const adminAPI = {

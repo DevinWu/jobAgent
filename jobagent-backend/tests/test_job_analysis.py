@@ -97,8 +97,8 @@ def test_get_job_analyses_by_domain():
     assert response.status_code == 200, f"API call failed: {response.text}"
     job_analyses = response.json()
     assert job_analyses is not None
-    assert len(job_analyses) > 0
-    for job_analysis in job_analyses:
+    assert job_analyses["count"] > 0
+    for job_analysis in job_analyses["results"]:
         assert job_analysis["job_id"] in ["job1", "job2"]
         assert job_analysis["domain_id"] == domain_id
         assert job_analysis["failure_category"] == JobFailureCategory.UNKNOWN.value
