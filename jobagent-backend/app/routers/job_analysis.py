@@ -4,7 +4,8 @@ from typing import List
 
 from sqlalchemy.sql.functions import count
 
-from ..crud import get_job_analysis, create_job_analysis, get_domain, get_job_analyses_by_domain
+from ..crud import get_job_analysis, create_job_analysis, get_domain, get_job_analyses_by_domain, \
+    delete_job_analysis_by_domain
 from ..auth import get_current_user
 from .. import schemas, models
 from ..database import get_db
@@ -30,6 +31,7 @@ async def analyze_job(
         raise HTTPException(status_code=400, detail="Domain is not published")
     
     failure_category = models.JobFailureCategory.UNKNOWN
+
     root_cause = f"Analyzing job {analysis_request.job_id} in domain {domain.title}. This is a simulated analysis result."
     suggestions = "1. Check job logs for specific error messages\n2. Verify input parameters\n3. Contact support if issue persists"
     
@@ -43,6 +45,7 @@ async def analyze_job(
         db=db,
         job_id=analysis_request.job_id,
         domain_id=analysis_request.domain_id,
+        analysis_status=models.JobAnalysisStatus.IN_PROGRESS,
         failure_category=failure_category,
         root_cause=root_cause,
         suggestions=suggestions,
@@ -63,6 +66,25 @@ def get_job_analysis_result(
         raise HTTPException(status_code=404, detail="Job analysis jobs not found")
     return analysis
 
+@router.delete("/{job_id}/{domain_id}", status_code=204)
+def delete_job_analysis(
+    job_id: str,
+    domain_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    删除指定 job_id 和 domain_id 的 job 分析记录
+    """
+    analysis = get_job_analysis(db, job_id, domain_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Job analysis not found")
+    
+    if not delete_job_analysis_by_domain(db, job_id, domain_id):
+        raise HTTPException(status_code=500, detail="Failed to delete job analysis")
+    
+    return None
+
 @router.get("/jobs/domain/{domain_id}", response_model=schemas.JobAnalysisListResponse)
 def get_domain_job_analyses(
     domain_id: int,
@@ -82,9 +104,7 @@ def get_domain_job_analyses(
     
     # 获取该 domain 下的所有 job 分析结果
     analyses = get_job_analyses_by_domain(db, domain_id=domain_id, skip=skip, limit=limit)
-    if not analyses:
-        return []
     print(f"Return a job list with size: {len(analyses)}")
     if len(analyses) >= 1:
         print(f"show one jobs with detail: {analyses[0]}")
-    return schemas.JobAnalysisListResponse(results=analyses, count=len(analyses))
+    return schemas.JobAnalysisListResponse(results=analyses or [], count=len(analyses))

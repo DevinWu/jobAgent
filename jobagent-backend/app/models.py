@@ -15,6 +15,12 @@ class JobFailureCategory(enum.Enum):
     THIRD_PLATFORM_ERROR = "ThirdPlatformError"
     PLATFORM_ERROR = "PlatformError"
 
+class JobAnalysisStatus(enum.Enum):
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    ACCEPTED = "accepted"
+    MANUALLY_CORRECTED = "manually_corrected"
+
 class MCPToolStatus(enum.Enum):
     DRAFT = "draft"
     WAITING_FOR_ADMIN_REVIEW = "waiting_for_admin_review"
@@ -79,6 +85,7 @@ class JobAnalysis(Base):
     id = Column(Integer, primary_key=True, index=True)
     job_id = Column(String(100), nullable=False, index=True)
     domain_id = Column(Integer, ForeignKey("domains.id"), nullable=False)
+    analysis_status = Column(Enum(JobAnalysisStatus), default=JobAnalysisStatus.IN_PROGRESS)
     failure_category = Column(Enum(JobFailureCategory), nullable=False)
     root_cause_analysis = Column(Text, nullable=False)
     user_suggestions = Column(Text, nullable=False)

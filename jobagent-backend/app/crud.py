@@ -126,10 +126,11 @@ def get_job_analysis(db: Session, job_id: str, domain_id: int):
         and_(models.JobAnalysis.job_id == job_id, models.JobAnalysis.domain_id == domain_id)
     ).first()
 
-def create_job_analysis(db: Session, job_id: str, domain_id: int, failure_category: models.JobFailureCategory, root_cause: str, suggestions: str, analysis_data: Optional[dict] = None):
+def create_job_analysis(db: Session, job_id: str, domain_id: int, analysis_status: models.JobAnalysisStatus, failure_category: models.JobFailureCategory, root_cause: str, suggestions: str, analysis_data: Optional[dict] = None):
     db_analysis = models.JobAnalysis(
         job_id=job_id,
         domain_id=domain_id,
+        analysis_status=analysis_status,
         failure_category=failure_category,
         root_cause_analysis=root_cause,
         user_suggestions=suggestions,
@@ -184,6 +185,19 @@ def get_job_analyses_by_domain(db: Session, domain_id: int, skip: int = 0, limit
     return db.query(models.JobAnalysis).filter(
         models.JobAnalysis.domain_id == domain_id
     ).offset(skip).limit(limit).all()
+
+def delete_job_analysis_by_domain(db: Session, job_id: str, domain_id: int):
+    """
+    删除指定 job_id 和 domain_id 的 job 分析记录
+    """
+    db_analysis = db.query(models.JobAnalysis).filter(
+        and_(models.JobAnalysis.job_id == job_id, models.JobAnalysis.domain_id == domain_id)
+    ).first()
+    if db_analysis:
+        db.delete(db_analysis)
+        db.commit()
+        return True
+    return False
 
 def create_admin_user(db: Session):
     existing_admin = db.query(models.User).filter(models.User.username == "admin").first()
