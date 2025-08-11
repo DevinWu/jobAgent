@@ -1,8 +1,12 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
-from typing import List, Optional
+from typing import List, Optional, Any, Type
 from . import models, schemas
 from .auth import get_password_hash, verify_password
+from datetime import datetime
+
+from .models import JobAnalysis
+
 
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
@@ -214,3 +218,34 @@ def create_admin_user(db: Session):
         db.refresh(admin_user)
         return admin_user
     return existing_admin
+
+def get_in_progress_jobs(db: Session) -> List[models.JobAnalysis]:
+    """获取所有状态为IN_PROGRESS的job分析"""
+    return db.query(models.JobAnalysis).filter(
+        models.JobAnalysis.analysis_status == models.JobAnalysisStatus.IN_PROGRESS
+    ).all()
+
+def update_job_analysis_status(
+    db: Session,
+    job_id: str,
+    domain_id: int,
+    status: models.JobAnalysisStatus,
+    root_cause: str = "",
+    suggestions: str = ""
+) -> Type[JobAnalysis]:
+    """更新job分析状态和相关信息"""
+    job = get_job_analysis(db, job_id, domain_id)
+    if not job:
+        raise ValueError("Job analysis not found")
+    
+    job.analysis_status = status
+    if root_cause:
+        job.root_cause_analysis = root_cause
+    if suggestions:
+        job.user_suggestions = suggestions
+    job.updated_at = datetime.utcnow()
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    return job

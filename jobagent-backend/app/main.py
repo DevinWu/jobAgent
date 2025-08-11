@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .routers import auth, domains, mcp_tools, job_analysis, admin
+from .services.job_analysis_service import job_analysis_service
 
 Base.metadata.create_all(bind=engine)
 
