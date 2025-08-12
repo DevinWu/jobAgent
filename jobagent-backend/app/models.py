@@ -41,10 +41,12 @@ class User(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), default=UserRole.USER)
+    default_domain_id = Column(Integer, ForeignKey("domains.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    domains = relationship("Domain", back_populates="creator")
+    domains = relationship("Domain", back_populates="creator", foreign_keys="[Domain.creator_id]")
+    default_domain = relationship("Domain", back_populates="default_users", foreign_keys="[User.default_domain_id]")
     mcp_tools = relationship("MCPTool", back_populates="creator")
 
 class Domain(Base):
@@ -60,7 +62,8 @@ class Domain(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    creator = relationship("User", back_populates="domains")
+    creator = relationship("User", back_populates="domains", foreign_keys=[creator_id])
+    default_users = relationship("User", back_populates="default_domain", foreign_keys="[User.default_domain_id]")
     job_analyses = relationship("JobAnalysis", back_populates="domain")
 
 class MCPTool(Base):
@@ -91,5 +94,9 @@ class JobAnalysis(Base):
     user_suggestions = Column(Text, nullable=False)
     analysis_data = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
 
     domain = relationship("Domain", back_populates="job_analyses")
+    reviewer = relationship("User", foreign_keys=[reviewer_id])

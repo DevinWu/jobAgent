@@ -166,6 +166,18 @@ def update_user_role(db: Session, user_id: int, role_update: schemas.UserRoleUpd
         db.refresh(db_user)
     return db_user
 
+def update_user_default_domain(db: Session, user_id: int, default_domain_update: schemas.UserDefaultDomainUpdate):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_user:
+        # 验证领域是否存在
+        domain = db.query(models.Domain).filter(models.Domain.id == default_domain_update.default_domain_id).first()
+        if not domain:
+            return None
+        db_user.default_domain_id = default_domain_update.default_domain_id
+        db.commit()
+        db.refresh(db_user)
+    return db_user
+
 def delete_mcp_tool(db: Session, tool_id: int):
     db_tool = db.query(models.MCPTool).filter(models.MCPTool.id == tool_id).first()
     if db_tool:
@@ -243,6 +255,42 @@ def update_job_analysis_status(
         job.root_cause_analysis = root_cause
     if suggestions:
         job.user_suggestions = suggestions
+    job.updated_at = datetime.utcnow()
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    return job
+
+def accept_job_analysis(
+    db: Session,
+    job_id: str,
+    domain_id: int,
+    reviewer_id: int
+) -> Optional[models.JobAnalysis]:
+    """
+    将指定 job_id 和 domain_id 的 job 分析状态从 COMPLETED 更新为 ACCEPTED，
+    并记录审核人和审核时间
+    
+    Args:
+        db: 数据库会话
+        job_id: 作业ID
+        domain_id: 领域ID
+        reviewer_id: 审核人ID
+        
+    Returns:
+        更新后的JobAnalysis对象，如果作业不存在或状态不是COMPLETED则返回None
+    """
+    job = get_job_analysis(db, job_id, domain_id)
+    if not job:
+        return None
+    
+    if job.analysis_status != models.JobAnalysisStatus.COMPLETED:
+        return None
+    
+    job.analysis_status = models.JobAnalysisStatus.ACCEPTED
+    job.reviewer_id = reviewer_id
+    job.reviewed_at = datetime.utcnow()
     job.updated_at = datetime.utcnow()
     
     db.add(job)

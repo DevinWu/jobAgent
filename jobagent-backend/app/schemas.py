@@ -84,6 +84,9 @@ class DomainAdminUpdate(BaseModel):
 class UserRoleUpdate(BaseModel):
     role: UserRole
 
+class UserDefaultDomainUpdate(BaseModel):
+    default_domain_id: int
+
 class JobAnalysisCreate(BaseModel):
     job_id: str
     domain_id: int
@@ -98,6 +101,9 @@ class JobAnalysisResponse(BaseModel):
     user_suggestions: str
     analysis_data: Optional[Dict[str, Any]]
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    reviewer_id: Optional[int] = None
+    reviewed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -113,3 +119,8 @@ class MCPToolExecuteResponse(BaseModel):
 class JobAnalysisListResponse(BaseModel):
     results: List[JobAnalysisResponse]
     count: int
+
+class JobAnalysisAccept(BaseModel):
+    """接受作业分析的请求模型"""
+    job_id: str
+    domain_id: int

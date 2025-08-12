@@ -5,7 +5,7 @@ from typing import List
 from sqlalchemy.sql.functions import count
 
 from ..crud import get_job_analysis, create_job_analysis, get_domain, get_job_analyses_by_domain, \
-    delete_job_analysis_by_domain
+    delete_job_analysis_by_domain, accept_job_analysis
 from ..auth import get_current_user
 from .. import schemas, models
 from ..database import get_db
@@ -108,3 +108,41 @@ def get_domain_job_analyses(
     if len(analyses) >= 1:
         print(f"show one jobs with detail: {analyses[0]}")
     return schemas.JobAnalysisListResponse(results=analyses or [], count=len(analyses))
+
+@router.put("/accept/{job_id}/{domain_id}", response_model=schemas.JobAnalysisResponse)
+def accept_job_analysis_endpoint(
+    job_id: str,
+    domain_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    接受作业分析结果，将状态从COMPLETED更新为ACCEPTED，并记录审核人和审核时间
+    
+    Args:
+        job_id: 作业ID
+        domain_id: 领域ID
+        current_user: 当前用户（审核人）
+        db: 数据库会话
+        
+    Returns:
+        更新后的JobAnalysis对象
+    """
+    # 检查作业分析是否存在
+    analysis = get_job_analysis(db, job_id, domain_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Job analysis not found")
+    
+    # 检查作业分析状态是否为COMPLETED
+    if analysis.analysis_status != models.JobAnalysisStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Job analysis status must be COMPLETED to accept, current status: {analysis.analysis_status}"
+        )
+    
+    # 更新作业分析状态为ACCEPTED，并记录审核人和审核时间
+    updated_analysis = accept_job_analysis(db, job_id, domain_id, current_user.id)
+    if not updated_analysis:
+        raise HTTPException(status_code=500, detail="Failed to accept job analysis")
+    
+    return updated_analysis
