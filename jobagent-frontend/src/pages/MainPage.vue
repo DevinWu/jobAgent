@@ -47,7 +47,7 @@
         <p class="text-gray-600 text-sm">Analyze job failures with AI-powered diagnostic workflows</p>
       </div>
 
-      <el-form class="mb-6">
+      <el-form class="mb-6" @submit.prevent>
         <el-row :gutter="24">
           <el-col :span="24">
             <el-form-item label="Job ID">
@@ -56,7 +56,6 @@
                   placeholder="Enter job ID to analyze"
                   size="large"
                   :prefix-icon="Search"
-                  @keyup.enter="handleAnalyze"
               />
             </el-form-item>
           </el-col>

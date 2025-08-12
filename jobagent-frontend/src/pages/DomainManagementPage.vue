@@ -2,11 +2,26 @@
   <div class="domain-management-page">
     <el-card class="header-card">
       <template #header>
-        <h1>Domain Management</h1>
+        <div class="header-content">
+          <h1>Domain Management</h1>
+          <el-dropdown @command="handleTabChange" trigger="click">
+            <el-button type="primary">
+              {{ getActiveTabLabel() }}
+              <el-icon class="el-icon--right"><arrow-down /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="published">My Published Domains</el-dropdown-item>
+                <el-dropdown-item command="pending">Pending Review Domains</el-dropdown-item>
+                <el-dropdown-item divided command="create">Create New Domain</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </template>
       
-      <el-tabs v-model="activeTab" class="demo-tabs">
-        <el-tab-pane label="Create New Domain" name="create">
+      <div>
+        <div v-if="activeTab === 'create'">
           <div class="create-domain-section">
             <el-row :gutter="20">
               <el-col :span="6">
@@ -267,9 +282,9 @@
               </el-col>
             </el-row>
           </div>
-        </el-tab-pane>
+        </div>
 
-        <el-tab-pane label="My Published Domains" name="published">
+        <div v-if="activeTab === 'published'">
           <el-table :data="publishedDomains" :loading="loadingDomains" stripe>
             <el-table-column prop="title" label="Domain Title" width="200" />
             <el-table-column prop="description" label="Description" show-overflow-tooltip />
@@ -309,9 +324,9 @@
               </template>
             </el-table-column>
           </el-table>
-        </el-tab-pane>
+        </div>
 
-        <el-tab-pane label="Pending Review Domains" name="pending">
+        <div v-if="activeTab === 'pending'">
           <el-table :data="pendingDomains" :loading="loadingDomains" stripe>
             <el-table-column prop="title" label="Domain Title" width="200" />
             <el-table-column prop="description" label="Description" show-overflow-tooltip />
@@ -353,8 +368,8 @@
               </template>
             </el-table-column>
           </el-table>
-        </el-tab-pane>
-      </el-tabs>
+        </div>
+      </div>
     </el-card>
   </div>
 </template>
@@ -365,7 +380,7 @@ import { useRouter } from 'vue-router'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
-import { Document, Upload, Plus, Delete, Edit } from '@element-plus/icons-vue'
+import { Document, Upload, Plus, Delete, Edit, ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { useDomainStore } from '@/stores/domain'
@@ -823,6 +838,23 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString()
 }
 
+const getActiveTabLabel = () => {
+  switch (activeTab.value) {
+    case 'create':
+      return 'Create New Domain'
+    case 'published':
+      return 'My Published Domains'
+    case 'pending':
+      return 'Pending Review Domains'
+    default:
+      return 'Select Option'
+  }
+}
+
+const handleTabChange = (command: string) => {
+  activeTab.value = command
+}
+
 const handleDeleteDomain = (domain: Domain) => {
   ElMessageBox.confirm(
     `Are you sure you want to delete the domain "${domain.title}"? This action cannot be undone.`,
@@ -859,6 +891,12 @@ const handleDeleteDomain = (domain: Domain) => {
 
 .header-card {
   margin-bottom: 20px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .create-domain-section {
