@@ -40,6 +40,10 @@
       </div>
     </div>
 
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+
+    </div>
+
     <!-- 新任务分析区域 -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
       <div class="border-l-4 border-blue-500 pl-4 mb-6">
